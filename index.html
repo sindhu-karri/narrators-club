@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Narrator's Club — Member Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="data.js"></script>
+<style>
+:root {
+  --red: #9b1c1c;
+  --red-dark: #7f1d1d;
+  --gold: #d97706;
+  --bg: #f1f5f9;
+  --card: #ffffff;
+  --text: #1e293b;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --green: #16a34a;
+  --amber: #d97706;
+  --red-warn: #dc2626;
+  --gray: #9ca3af;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── HEADER ── */
+header{background:linear-gradient(135deg,var(--red-dark) 0%,var(--red) 60%,#b91c1c 100%);color:white;padding:0 2rem;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.3);}
+.header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:1.5rem;height:64px;}
+.club-logo{display:flex;align-items:center;gap:.75rem;flex:1;}
+.logo-icon{width:42px;height:42px;background:rgba(255,255,255,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:2px solid rgba(255,255,255,.3);}
+.club-name{font-size:1.25rem;font-weight:700;letter-spacing:-.01em;}
+.club-sub{font-size:.7rem;opacity:.7;font-weight:400;letter-spacing:.05em;text-transform:uppercase;}
+nav{display:flex;gap:.25rem;}
+.tab-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:white;padding:.5rem 1.25rem;border-radius:8px;cursor:pointer;font-size:.875rem;font-weight:500;transition:all .2s;display:flex;align-items:center;gap:.4rem;}
+.tab-btn:hover{background:rgba(255,255,255,.2);}
+.tab-btn.active{background:white;color:var(--red);border-color:white;}
+.generated-badge{font-size:.65rem;opacity:.6;white-space:nowrap;}
+
+/* ── LAYOUT ── */
+.page{display:none;max-width:1200px;margin:0 auto;padding:2rem;}
+.page.active{display:block;}
+
+/* ── SUMMARY STRIP ── */
+.summary-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:2rem;}
+.stat-card{background:white;border-radius:14px;padding:1.25rem 1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.08);border-left:4px solid var(--c);}
+.stat-card .s-val{font-size:2rem;font-weight:800;color:var(--c);}
+.stat-card .s-lbl{font-size:.75rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-top:.2rem;}
+
+/* ── FILTERS ── */
+.filters{display:flex;gap:.75rem;margin-bottom:1.75rem;flex-wrap:wrap;align-items:center;}
+.search-box{flex:1;min-width:200px;position:relative;}
+.search-box input{width:100%;padding:.6rem 1rem .6rem 2.5rem;border:1px solid var(--border);border-radius:10px;font-size:.875rem;background:white;outline:none;transition:border .2s;}
+.search-box input:focus{border-color:#7c3aed;}
+.search-icon{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--muted);}
+select{padding:.6rem 1rem;border:1px solid var(--border);border-radius:10px;font-size:.875rem;background:white;cursor:pointer;outline:none;}
+
+/* ── LEVEL GROUP VIEW ── */
+.level-groups{display:flex;flex-direction:column;gap:1.25rem;}
+.level-group{background:white;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.07);overflow:hidden;}
+.group-header{display:flex;align-items:center;gap:.9rem;padding:.9rem 1.25rem;border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--gc,#7c3aed) 5%,white);}
+.group-level-badge{width:38px;height:38px;border-radius:10px;background:var(--gc,#7c3aed);color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0;}
+.group-title{font-weight:700;font-size:1rem;color:var(--gc,#7c3aed);flex:1;}
+.group-count{font-size:.75rem;color:var(--muted);background:var(--border);padding:.2rem .7rem;border-radius:20px;font-weight:600;}
+.group-pathway-tags{display:flex;gap:.35rem;flex-wrap:wrap;}
+.gp-tag{font-size:.65rem;padding:.15rem .5rem;border-radius:10px;font-weight:600;border:1px solid;}
+.member-row{display:flex;align-items:center;gap:.9rem;padding:.7rem 1.25rem;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background .15s;}
+.member-row:last-child{border:none;}
+.member-row:hover{background:#f8fafc;}
+.mr-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:white;flex-shrink:0;}
+.mr-info{flex:1;min-width:0;}
+.mr-name{font-weight:600;font-size:.875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mr-meta{display:flex;align-items:center;gap:.4rem;margin-top:.15rem;flex-wrap:wrap;}
+.mr-pathway-tag{font-size:.68rem;color:var(--muted);}
+.mr-role-tag{font-size:.63rem;padding:.1rem .4rem;background:#e0e7ff;color:#4338ca;border-radius:5px;font-weight:600;}
+.mr-mentor-tag{font-size:.63rem;padding:.1rem .4rem;background:#ecfdf5;color:#065f46;border-radius:5px;font-weight:500;}
+.modal-mentor-line{display:inline-flex;align-items:center;gap:.35rem;background:rgba(255,255,255,.15);padding:.2rem .75rem;border-radius:20px;font-size:.73rem;margin-top:.35rem;border:1px solid rgba(255,255,255,.25);}
+.ecp-mentor,.eco-mentor{font-size:.72rem;color:#065f46;background:#ecfdf5;padding:.2rem .6rem;border-radius:8px;margin-top:.4rem;display:inline-block;}
+.pay-mini{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.pay-mini.paid{background:#4ade80;}
+.pay-mini.unpaid{background:#f87171;}
+.pay-mini.pending{background:#fbbf24;}
+.proj-pips{display:flex;gap:.25rem;align-items:center;flex-shrink:0;}
+.pip{width:11px;height:11px;border-radius:3px;}
+.pip.done{background:var(--pc,#7c3aed);}
+.pip.next{background:transparent;border:2px solid var(--pc,#7c3aed);}
+.pip.todo{background:#e2e8f0;}
+.proj-progress-text{font-size:.68rem;color:var(--muted);white-space:nowrap;margin-left:.15rem;}
+/* keep legacy card styles only for modal header (not used in grid) */
+.card-avatar{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:white;border:2px solid rgba(255,255,255,.4);margin-bottom:.6rem;}
+.pay-dot{position:absolute;top:.9rem;right:.9rem;width:10px;height:10px;border-radius:50%;border:2px solid rgba(255,255,255,.5);}
+.pay-dot.paid{background:#4ade80;}
+.pay-dot.unpaid{background:#f87171;}
+.pay-dot.pending{background:#fbbf24;}
+.pathway-badge{display:inline-flex;align-items:center;gap:.4rem;padding:.2rem .65rem;border-radius:20px;font-size:.72rem;font-weight:600;margin-bottom:.75rem;color:var(--pc);background:color-mix(in srgb,var(--pc) 12%,white);}
+.pathway-dot{width:7px;height:7px;border-radius:50%;background:var(--pc);}
+.dtm-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .65rem;background:#fef3c7;color:#92400e;border-radius:20px;font-size:.72rem;font-weight:700;}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(4px);}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-box{background:white;border-radius:24px;width:100%;max-width:700px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;transform:scale(.95);transition:transform .25s;box-shadow:0 25px 60px rgba(0,0,0,.3);}
+.modal-overlay.open .modal-box{transform:scale(1);}
+.modal-scroll{overflow-y:auto;flex:1;}
+.modal-header{padding:2rem 2rem 1.5rem;color:white;position:relative;}
+.modal-close{position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,.2);border:none;color:white;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center;transition:background .2s;}
+.modal-close:hover{background:rgba(255,255,255,.35);}
+.modal-member-name{font-size:1.6rem;font-weight:800;margin-bottom:.25rem;}
+.modal-pathway{font-size:.9rem;opacity:.85;font-weight:500;}
+.modal-role-badge{display:inline-flex;align-items:center;gap:.35rem;background:rgba(255,255,255,.2);padding:.2rem .75rem;border-radius:20px;font-size:.75rem;font-weight:600;margin-top:.5rem;border:1px solid rgba(255,255,255,.3);}
+
+/* ── STATS ROW ── */
+.modal-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);}
+.modal-stat{background:white;padding:1.25rem;text-align:center;}
+.modal-stat .ms-val{font-size:1.75rem;font-weight:800;}
+.modal-stat .ms-lbl{font-size:.72rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-top:.15rem;}
+
+/* ── CHART + ROADMAP ── */
+.modal-body-section{padding:1.5rem 2rem;}
+.section-title{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:1.25rem;}
+.chart-row{display:flex;align-items:center;gap:2rem;}
+.donut-wrap{position:relative;width:120px;height:120px;flex-shrink:0;}
+.donut-wrap canvas{width:120px!important;height:120px!important;}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
+.donut-pct{font-size:1.4rem;font-weight:800;}
+.donut-sub{font-size:.65rem;color:var(--muted);font-weight:500;}
+.chart-legend{flex:1;}
+.legend-item{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem;font-size:.825rem;}
+.legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+
+/* ── ROADMAP ── */
+.roadmap{margin:0 -2rem;padding:1.5rem 2rem;background:#f8fafc;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.roadmap-track{display:flex;align-items:flex-start;position:relative;padding:.5rem 0;}
+.roadmap-track::before{content:'';position:absolute;top:28px;left:30px;right:30px;height:4px;background:var(--border);border-radius:2px;z-index:0;}
+.roadmap-progress{position:absolute;top:28px;left:30px;height:4px;background:var(--pc);border-radius:2px;z-index:1;transition:width 1s ease;}
+.roadmap-node{flex:1;display:flex;flex-direction:column;align-items:center;gap:.5rem;z-index:2;cursor:pointer;}
+.roadmap-circle{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;border:4px solid;transition:all .3s;position:relative;}
+.roadmap-circle.complete{background:var(--pc);border-color:var(--pc);color:white;box-shadow:0 4px 12px color-mix(in srgb,var(--pc) 40%,transparent);}
+.roadmap-circle.current{background:white;border-color:var(--pc);color:var(--pc);box-shadow:0 0 0 6px color-mix(in srgb,var(--pc) 15%,transparent);animation:pulse-ring 2s infinite;}
+.roadmap-circle.future{background:#f1f5f9;border-color:#cbd5e1;color:#94a3b8;}
+.roadmap-circle.complete::after{content:'✓';position:absolute;font-size:1.2rem;}
+.roadmap-label{font-size:.72rem;font-weight:600;color:var(--muted);text-align:center;line-height:1.3;}
+.roadmap-label span{display:block;font-size:.65rem;font-weight:400;}
+@keyframes pulse-ring{0%,100%{box-shadow:0 0 0 6px color-mix(in srgb,var(--pc) 15%,transparent);}50%{box-shadow:0 0 0 12px color-mix(in srgb,var(--pc) 8%,transparent);}}
+
+/* ── LEVEL ACCORDION ── */
+.levels-accordion{padding:1.5rem 2rem 2rem;}
+.level-item{border:1px solid var(--border);border-radius:12px;margin-bottom:.75rem;overflow:hidden;transition:box-shadow .2s;}
+.level-item.complete-lvl{border-color:#bbf7d0;}
+.level-item.current-lvl{border-color:var(--pc);box-shadow:0 0 0 3px color-mix(in srgb,var(--pc) 12%,transparent);}
+.level-header{display:flex;align-items:center;gap:1rem;padding:.9rem 1.25rem;cursor:pointer;user-select:none;}
+.level-badge{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem;flex-shrink:0;}
+.level-badge.complete{background:#dcfce7;color:#15803d;}
+.level-badge.current{background:var(--pc);color:white;}
+.level-badge.future{background:#f1f5f9;color:#94a3b8;}
+.level-info{flex:1;}
+.level-name{font-weight:600;font-size:.9rem;}
+.level-subtitle{font-size:.73rem;color:var(--muted);margin-top:.1rem;}
+.level-status-pill{font-size:.68rem;padding:.2rem .65rem;border-radius:20px;font-weight:600;}
+.status-done{background:#dcfce7;color:#15803d;}
+.status-current{background:color-mix(in srgb,var(--pc) 12%,white);color:var(--pc);}
+.status-future{background:#f1f5f9;color:#94a3b8;}
+.level-chevron{color:var(--muted);transition:transform .2s;font-size:.9rem;}
+.level-content{display:none;padding:.25rem 1.25rem 1rem 4.1rem;border-top:1px solid var(--border);background:#fafafa;}
+.level-content.expanded{display:block;}
+.project-row{display:flex;align-items:center;gap:.75rem;padding:.45rem 0;border-bottom:1px solid #f1f5f9;cursor:pointer;}
+.project-row:last-child{border:none;}
+.project-row:hover{background:#fafffe;border-radius:6px;}
+.proj-cb{width:18px;height:18px;border-radius:5px;border:2px solid #cbd5e1;flex-shrink:0;appearance:none;-webkit-appearance:none;cursor:pointer;position:relative;transition:all .2s;}
+.proj-cb:checked{background:var(--pc);border-color:var(--pc);}
+.proj-cb:checked::after{content:'✓';position:absolute;top:-2px;left:1px;color:white;font-size:.75rem;font-weight:700;}
+.proj-name{font-size:.83rem;color:var(--text);flex:1;user-select:none;}
+.proj-name.checked-name{text-decoration:line-through;color:#94a3b8;}
+.proj-name.elective-proj{font-style:italic;color:#64748b;}
+.elective-note{font-size:.75rem;color:var(--muted);font-style:italic;margin-top:.5rem;padding:.5rem .75rem;background:#f8fafc;border-radius:8px;border-left:3px solid var(--amber);}
+.next-step-box{margin:1rem 0 0;padding:.75rem 1rem;background:color-mix(in srgb,var(--pc) 8%,white);border-radius:10px;border-left:4px solid var(--pc);}
+.next-step-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--pc);margin-bottom:.4rem;}
+.next-step-text{font-size:.83rem;color:var(--text);}
+
+/* ── MEMBERSHIP VIEW ── */
+.lock-screen{max-width:380px;margin:6rem auto;text-align:center;background:white;border-radius:20px;padding:3rem 2rem;box-shadow:0 4px 24px rgba(0,0,0,.1);}
+.lock-icon{font-size:3rem;margin-bottom:1rem;}
+.lock-screen h2{font-size:1.4rem;font-weight:700;margin-bottom:.5rem;}
+.lock-screen p{color:var(--muted);font-size:.875rem;margin-bottom:1.5rem;}
+.pw-input{width:100%;padding:.75rem 1rem;border:2px solid var(--border);border-radius:10px;font-size:1rem;text-align:center;letter-spacing:.1em;outline:none;margin-bottom:1rem;transition:border .2s;}
+.pw-input:focus{border-color:var(--red);}
+.unlock-btn{width:100%;padding:.75rem;background:var(--red);color:white;border:none;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;transition:background .2s;}
+.unlock-btn:hover{background:var(--red-dark);}
+.pw-error{color:var(--red-warn);font-size:.8rem;margin-top:.5rem;display:none;}
+
+.mem-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:2rem;}
+.mem-stat{background:white;border-radius:12px;padding:1.25rem;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.07);border-top:4px solid var(--c);}
+.mem-stat .mv{font-size:2.2rem;font-weight:800;color:var(--c);}
+.mem-stat .ml{font-size:.72rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em;}
+
+.mem-table-wrap{background:white;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.07);overflow:hidden;}
+.mem-table-header{display:flex;justify-content:space-between;align-items:center;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);}
+.mem-table-title{font-weight:700;font-size:1rem;}
+.mem-filter-btns{display:flex;gap:.5rem;}
+.mfb{padding:.35rem .85rem;border-radius:8px;font-size:.75rem;font-weight:600;border:1px solid var(--border);background:white;cursor:pointer;transition:all .2s;}
+.mfb.active{background:var(--red);color:white;border-color:var(--red);}
+table{width:100%;border-collapse:collapse;}
+th{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:.9rem 1.5rem;text-align:left;background:#f8fafc;border-bottom:1px solid var(--border);}
+td{padding:.9rem 1.5rem;font-size:.875rem;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+tr:last-child td{border:none;}
+tr:hover td{background:#fafafa;}
+.pay-badge{display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .75rem;border-radius:20px;font-size:.72rem;font-weight:700;}
+.pay-badge.paid{background:#dcfce7;color:#15803d;}
+.pay-badge.unpaid{background:#fee2e2;color:#dc2626;}
+.pay-badge.pending{background:#fef3c7;color:#92400e;}
+.pay-badge.unknown{background:#f1f5f9;color:#64748b;}
+.role-chip{font-size:.68rem;padding:.15rem .55rem;background:#e0e7ff;color:#4338ca;border-radius:6px;font-weight:600;}
+.logout-btn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:white;padding:.4rem 1rem;border-radius:8px;cursor:pointer;font-size:.8rem;margin-left:.5rem;}
+
+/* ── EXCOM PAGE ── */
+.excom-hero{background:linear-gradient(135deg,#7f1d1d 0%,#9b1c1c 55%,#b91c1c 100%);color:white;padding:2rem 2.5rem;border-radius:20px;margin-bottom:2rem;box-shadow:0 8px 32px rgba(155,28,28,.3);}
+.excom-hero-inner{display:flex;align-items:center;gap:1.5rem;}
+.excom-hero-icon{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:2.4rem;border:2px solid rgba(255,255,255,.35);flex-shrink:0;}
+.excom-hero-title{font-size:1.8rem;font-weight:800;letter-spacing:-.02em;}
+.excom-hero-sub{font-size:.85rem;opacity:.75;margin-top:.3rem;letter-spacing:.01em;}
+.excom-section-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.9rem;}
+.excom-president-wrap{margin-bottom:2rem;}
+.excom-president-card{background:white;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1);cursor:pointer;transition:box-shadow .2s;}
+.excom-president-card:hover{box-shadow:0 12px 40px rgba(0,0,0,.16);}
+.ecp-header{padding:1.75rem 2rem;display:flex;align-items:center;gap:1.5rem;}
+.ecp-avatar{width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:1.75rem;font-weight:800;color:white;border:3px solid rgba(255,255,255,.45);flex-shrink:0;}
+.ecp-name{font-size:1.4rem;font-weight:800;color:white;margin-bottom:.4rem;}
+.ecp-role-badge{display:inline-flex;align-items:center;gap:.35rem;background:rgba(255,255,255,.2);padding:.25rem .8rem;border-radius:20px;font-size:.8rem;font-weight:600;color:white;border:1px solid rgba(255,255,255,.3);}
+.ecp-body{display:flex;align-items:center;gap:2rem;padding:1.25rem 2rem 1.5rem;flex-wrap:wrap;}
+.ecp-stat{text-align:center;min-width:72px;}
+.ecp-stat-val{font-size:1.75rem;font-weight:800;color:var(--text);}
+.ecp-stat-lbl{font-size:.65rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-top:.15rem;}
+.ecp-divider{width:1px;height:44px;background:var(--border);}
+.ecp-pathway-info{flex:1;min-width:180px;}
+.ecp-pathway-name{font-weight:700;font-size:.9rem;margin-bottom:.55rem;}
+.ecp-pips{display:flex;gap:.3rem;align-items:center;margin-bottom:.35rem;}
+.ecp-pip{width:14px;height:14px;border-radius:4px;}
+.ecp-pip.done{background:var(--pc);}
+.ecp-pip.next{background:transparent;border:2px solid var(--pc);}
+.ecp-pip.todo{background:#e2e8f0;}
+.ecp-pip-label{font-size:.72rem;color:var(--muted);}
+.excom-officers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:1.25rem;}
+.excom-officer-card{background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.08);cursor:pointer;transition:transform .2s,box-shadow .2s;}
+.excom-officer-card:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(0,0,0,.14);}
+.eco-header{padding:1.35rem 1.5rem;display:flex;align-items:center;gap:1rem;}
+.eco-avatar{width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:800;color:white;flex-shrink:0;border:2.5px solid rgba(255,255,255,.4);}
+.eco-name{font-weight:700;font-size:.925rem;color:white;margin-bottom:.3rem;line-height:1.3;}
+.eco-role-badge{display:inline-flex;align-items:center;gap:.3rem;background:rgba(255,255,255,.2);padding:.15rem .55rem;border-radius:12px;font-size:.68rem;font-weight:600;color:white;border:1px solid rgba(255,255,255,.25);}
+.eco-body{padding:1rem 1.5rem 1.25rem;}
+.eco-pathway{font-size:.78rem;font-weight:600;margin-bottom:.6rem;display:flex;align-items:center;gap:.35rem;}
+.eco-pips{display:flex;gap:.25rem;align-items:center;margin-bottom:.6rem;}
+.eco-pip{width:11px;height:11px;border-radius:3px;}
+.eco-pip.done{background:var(--pc);}
+.eco-pip.next{background:transparent;border:2px solid var(--pc);}
+.eco-pip.todo{background:#e2e8f0;}
+.eco-footer{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:.7rem;margin-top:.25rem;}
+.eco-level-text{font-size:.7rem;color:var(--muted);}
+
+.eco-vacant{background:white;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.08);border:2.5px dashed #fbbf24;}
+.eco-vacant-header{padding:1.35rem 1.5rem;display:flex;align-items:center;gap:1rem;background:linear-gradient(135deg,#78350f,#b45309 80%);}
+.eco-vacant-body{padding:1rem 1.5rem 1.25rem;}
+.eco-vacant-alert{display:flex;align-items:flex-start;gap:.65rem;background:#fefce8;border:1.5px solid #fde68a;border-radius:10px;padding:.75rem 1rem;}
+.eco-vacant-alert-icon{font-size:1.25rem;flex-shrink:0;line-height:1;}
+.eco-vacant-alert-text{font-size:.78rem;color:#92400e;font-weight:600;line-height:1.5;}
+.eco-vacant-alert-sub{font-size:.7rem;color:#b45309;font-weight:400;margin-top:.2rem;}
+
+/* ── EMPTY + MISC ── */
+.empty-msg{text-align:center;padding:3rem;color:var(--muted);}
+.empty-msg .em-icon{font-size:3rem;margin-bottom:.75rem;}
+@media(max-width:600px){
+  .modal-stats{grid-template-columns:repeat(3,1fr);}
+  .modal-member-name{font-size:1.25rem;}
+  .roadmap-circle{width:44px;height:44px;font-size:.75rem;}
+  .roadmap-track::before,.roadmap-progress{top:22px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ───────── HEADER ───────── -->
+<header>
+  <div class="header-inner">
+    <div class="club-logo">
+      <div class="logo-icon">🎤</div>
+      <div>
+        <div class="club-name">Narrator's Club</div>
+        <div class="club-sub">Toastmasters International</div>
+      </div>
+    </div>
+    <nav>
+      <button class="tab-btn active" onclick="switchTab('pathway')" id="tab-pathway-btn">
+        🗺️ Pathway Progress
+      </button>
+      <button class="tab-btn" onclick="switchTab('excom')" id="tab-excom-btn">
+        ⭐ ExCom
+      </button>
+      <button class="tab-btn" onclick="switchTab('membership')" id="tab-membership-btn">
+        🔒 Membership
+      </button>
+    </nav>
+    <button class="logout-btn" id="logout-btn" style="display:none" onclick="logout()">Sign Out</button>
+    <span class="generated-badge" id="gen-badge"></span>
+  </div>
+</header>
+
+<!-- ───────── PATHWAY TAB ───────── -->
+<div class="page active" id="page-pathway">
+  <div class="summary-strip" id="pathway-summary"></div>
+  <div class="filters">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input" placeholder="Search members…" oninput="filterCards()"/>
+    </div>
+    <select id="pathway-filter" onchange="filterCards()">
+      <option value="">All Pathways</option>
+    </select>
+    <select id="level-filter" onchange="filterCards()">
+      <option value="">All Levels</option>
+      <option value="0">Level 1</option>
+      <option value="1">Level 2</option>
+      <option value="2">Level 3</option>
+      <option value="3">Level 4</option>
+      <option value="4">Level 5</option>
+      <option value="99">Complete</option>
+    </select>
+  </div>
+  <div class="level-groups" id="cards-grid"></div>
+  <div class="empty-msg" id="empty-msg" style="display:none">
+    <div class="em-icon">🔍</div>
+    <div>No members match your search.</div>
+  </div>
+</div>
+
+<!-- ───────── EXCOM TAB ───────── -->
+<div class="page" id="page-excom">
+  <div class="excom-hero">
+    <div class="excom-hero-inner">
+      <div class="excom-hero-icon">⭐</div>
+      <div>
+        <div class="excom-hero-title">Executive Committee</div>
+        <div class="excom-hero-sub">Narrator's Club · Toastmasters International · 2024–25</div>
+      </div>
+    </div>
+  </div>
+  <div id="excom-content"></div>
+</div>
+
+<!-- ───────── MEMBERSHIP TAB ───────── -->
+<div class="page" id="page-membership">
+  <!-- Lock screen -->
+  <div id="lock-screen">
+    <div class="lock-screen">
+      <div class="lock-icon">🔐</div>
+      <h2>ExCom Access</h2>
+      <p>This section contains confidential membership information. Please enter the ExCom password to continue.</p>
+      <input class="pw-input" type="password" id="pw-input" placeholder="••••••••••" onkeydown="if(event.key==='Enter')checkPw()"/>
+      <button class="unlock-btn" onclick="checkPw()">Unlock</button>
+      <div class="pw-error" id="pw-error">Incorrect password. Please try again.</div>
+    </div>
+  </div>
+  <!-- Membership content -->
+  <div id="mem-content" style="display:none">
+    <div class="mem-summary" id="mem-summary"></div>
+    <div class="mem-table-wrap">
+      <div class="mem-table-header">
+        <div class="mem-table-title">All Members — Membership Status</div>
+        <div class="mem-filter-btns">
+          <button class="mfb active" onclick="filterMem('all',this)">All</button>
+          <button class="mfb" onclick="filterMem('unpaid',this)">Unpaid</button>
+          <button class="mfb" onclick="filterMem('pending',this)">Pending</button>
+          <button class="mfb" onclick="filterMem('paid',this)">Paid</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Name</th><th>Member Since</th>
+            <th>Status</th><th>Pay Date</th><th>Role</th><th>Pathway</th>
+          </tr>
+        </thead>
+        <tbody id="mem-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ───────── DETAIL MODAL ───────── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal-box" id="modal-box">
+    <div class="modal-scroll" id="modal-scroll"></div>
+  </div>
+</div>
+
+<script>
+// ── DATA CHECK ──────────────────────────────────────────────────────────────
+if(typeof window.CLUB_DATA === 'undefined'){
+  document.body.innerHTML = `<div style="text-align:center;padding:4rem;font-family:Inter,sans-serif">
+    <h2>⚠️ data.js not found</h2>
+    <p style="margin-top:1rem;color:#64748b">Run <code>python generate_website_data.py</code> in the toastmasters folder first.</p>
+  </div>`;
+}
+
+const D = window.CLUB_DATA;
+const M = window.MEMBERSHIP_DATA;
+const PW = window.EXCOM_PASSWORD || 'Narrators@2025';
+
+document.getElementById('gen-badge').textContent = D ? `Updated ${D.generated_at}` : '';
+
+// ── PROGRESS STORAGE ─────────────────────────────────────────────────────────
+const STORAGE_KEY = 'narrator_club_progress_v4';
+
+function loadProgress(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+  catch(e){ return {}; }
+}
+function saveProgress(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function isProjectDone(memberName, projectName){
+  const progress = loadProgress();
+  const seed = (window.PROJECT_COMPLETION_SEED || {})[memberName] || {};
+  // localStorage overrides seed; seed is default
+  const memberProgress = progress[memberName] || {};
+  if(memberName in (progress) && projectName in memberProgress) return memberProgress[projectName];
+  return seed[projectName] || false;
+}
+
+function setProjectDone(memberName, projectName, done){
+  const progress = loadProgress();
+  if(!progress[memberName]) progress[memberName] = {};
+  progress[memberName][projectName] = done;
+  saveProgress(progress);
+}
+
+// Seed localStorage from PROJECT_COMPLETION_SEED if not already set
+// Confirmed completions (true) always win over stale localStorage values
+function applySeed(){
+  const seed = window.PROJECT_COMPLETION_SEED || {};
+  const progress = loadProgress();
+  let changed = false;
+  for(const [member, projects] of Object.entries(seed)){
+    if(!progress[member]) progress[member] = {};
+    for(const [proj, done] of Object.entries(projects)){
+      if(done){
+        // Confirmed completions always override localStorage
+        if(!progress[member][proj]){ progress[member][proj] = true; changed = true; }
+      } else {
+        // Only seed false if not yet recorded
+        if(!(proj in progress[member])){ progress[member][proj] = false; changed = true; }
+      }
+    }
+  }
+  if(changed) saveProgress(progress);
+}
+applySeed();
+
+document.getElementById('gen-badge').textContent = D ? `Updated ${D.generated_at}` : '';
+
+// ── PATHWAY COLORS (css vars per card) ──────────────────────────────────────
+function hexDark(hex){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `#${Math.max(0,r-40).toString(16).padStart(2,'0')}${Math.max(0,g-40).toString(16).padStart(2,'0')}${Math.max(0,b-40).toString(16).padStart(2,'0')}`;
+}
+
+// ── TAB SWITCH ───────────────────────────────────────────────────────────────
+function switchTab(t){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+t).classList.add('active');
+  document.getElementById('tab-'+t+'-btn').classList.add('active');
+}
+
+// ── PATHWAY PAGE ─────────────────────────────────────────────────────────────
+// Members visible on the pathway page: paid/pending + Prathik Shetty as a guest
+function visibleMembers(){
+  return D.members.filter(m => m.pay_norm !== 'unpaid' || m.name === 'Prathik Shetty');
+}
+
+function initPathwayPage(){
+  if(!D) return;
+  const members = visibleMembers();
+
+  // Summary strip
+  const pathways = {};
+  let enrolled=0, unenrolled=0, dtm=0, lvl5=0;
+  members.forEach(m=>{
+    if(m.is_dtm){dtm++; return;}
+    if(m.not_enrolled){unenrolled++; return;}
+    enrolled++;
+    if(m.completed_levels >= 5) lvl5++;
+    if(m.pathway) pathways[m.pathway] = (pathways[m.pathway]||0)+1;
+  });
+  const strip = document.getElementById('pathway-summary');
+  strip.innerHTML = `
+    <div class="stat-card" style="--c:#7c3aed"><div class="s-val">${members.length}</div><div class="s-lbl">Total Members</div></div>
+    <div class="stat-card" style="--c:#16a34a"><div class="s-val">${enrolled}</div><div class="s-lbl">In Pathways</div></div>
+    <div class="stat-card" style="--c:#d97706"><div class="s-val">${unenrolled}</div><div class="s-lbl">Not Enrolled</div></div>
+    <div class="stat-card" style="--c:#0891b2"><div class="s-val">${lvl5}</div><div class="s-lbl">Level 5 / Complete</div></div>
+    <div class="stat-card" style="--c:#b45309"><div class="s-val">${dtm}</div><div class="s-lbl">DTM</div></div>`;
+
+  // Pathway filter options
+  const sel = document.getElementById('pathway-filter');
+  [...new Set(members.filter(m=>m.pathway&&!m.not_enrolled).map(m=>m.pathway))].sort().forEach(p=>{
+    const o=document.createElement('option'); o.value=p; o.textContent=p; sel.appendChild(o);
+  });
+
+  renderGroups(members);
+}
+
+const GROUP_COLORS = {1:'#7c3aed',2:'#2563eb',3:'#0891b2',4:'#16a34a',5:'#d97706'};
+
+function renderGroups(members){
+  const grid = document.getElementById('cards-grid');
+  const empty = document.getElementById('empty-msg');
+  if(!members.length){ grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+
+  const groupMap = {};
+  members.forEach(m => {
+    let key, label, sortNum;
+    if(m.is_dtm){
+      key='dtm'; label='🏆 Distinguished Toastmaster'; sortNum=98;
+    } else if(m.not_enrolled || !m.pathway){
+      key='none'; label='⚠️ Not Yet Enrolled'; sortNum=99;
+    } else if(m.completed_levels >= 5){
+      key='complete'; label='🎉 Pathway Complete'; sortNum=6;
+    } else {
+      const lvl = m.completed_levels + 1;
+      key='lvl'+lvl; label='Level '+lvl; sortNum=lvl;
+    }
+    if(!groupMap[key]) groupMap[key]={label, sortNum, members:[]};
+    groupMap[key].members.push(m);
+  });
+
+  const sorted = Object.values(groupMap).sort((a,b)=>a.sortNum-b.sortNum);
+  grid.innerHTML = sorted.map(g => renderGroupHTML(g)).join('');
+}
+
+function renderGroupHTML(group){
+  const lvlNum = group.sortNum <= 5 ? group.sortNum : null;
+  const color = lvlNum ? (GROUP_COLORS[lvlNum]||'#6b7280') : '#6b7280';
+  const pathways = [...new Set(group.members.filter(m=>m.pathway&&!m.not_enrolled&&!m.is_dtm).map(m=>m.pathway))];
+  const pathwayTags = pathways.map(p=>{
+    const pc = group.members.find(m=>m.pathway===p)?.pathway_color || '#6b7280';
+    return `<span class="gp-tag" style="color:${pc};border-color:${pc}44;background:${pc}11">${p}</span>`;
+  }).join('');
+  const rows = group.members.map(m => memberRowHTML(m, D.members.indexOf(m))).join('');
+  return `<div class="level-group">
+    <div class="group-header" style="--gc:${color}">
+      <div class="group-level-badge">${lvlNum ? 'L'+lvlNum : '—'}</div>
+      <div class="group-title">${group.label}</div>
+      ${pathwayTags ? `<div class="group-pathway-tags">${pathwayTags}</div>` : ''}
+      <div class="group-count">${group.members.length} member${group.members.length!==1?'s':''}</div>
+    </div>
+    <div class="group-members">${rows}</div>
+  </div>`;
+}
+
+function memberRowHTML(m, origIdx){
+  const pc = m.pathway_color || '#6b7280';
+  const initials = m.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  let pipsHTML = '';
+  if(!m.is_dtm && !m.not_enrolled && m.pathway && m.levels){
+    const curLvl = m.levels.find(l=>l.status==='current');
+    if(curLvl){
+      const firstUndoneIdx = curLvl.projects.findIndex(p=>!isProjectDone(m.name,p));
+      const doneCount = firstUndoneIdx === -1 ? curLvl.projects.length : firstUndoneIdx;
+      const total = curLvl.projects.length;
+      const pips = curLvl.projects.map((p,i)=>{
+        const done = isProjectDone(m.name,p);
+        const cls = done?'done':(i===firstUndoneIdx?'next':'todo');
+        return `<div class="pip ${cls}" style="--pc:${pc}" title="${p}"></div>`;
+      }).join('');
+      pipsHTML = `<div class="proj-pips">${pips}</div><div class="proj-progress-text">${doneCount}/${total}</div>`;
+    }
+  } else if(m.is_dtm){
+    pipsHTML = `<span style="font-size:.75rem;color:#92400e;font-weight:700">🏆 DTM</span>`;
+  }
+  const roleTag = m.excom_role ? `<span class="mr-role-tag">⭐ ${m.excom_role}</span>` : '';
+  const mentorTag = m.mentor ? `<span class="mr-mentor-tag">👤 ${m.mentor}</span>` : '';
+  const pathwayTag = m.pathway&&!m.not_enrolled&&!m.is_dtm
+    ? `<span class="mr-pathway-tag" style="color:${pc}">📚 ${m.pathway}</span>` : '';
+  return `<div class="member-row" onclick="openModal(${origIdx})">
+    <div class="pay-mini ${m.pay_norm}"></div>
+    <div class="mr-avatar" style="background:${pc}">${initials}</div>
+    <div class="mr-info">
+      <div class="mr-name">${m.name}</div>
+      <div class="mr-meta">${pathwayTag}${roleTag}${mentorTag}</div>
+    </div>
+    ${pipsHTML}
+  </div>`;
+}
+
+function filterCards(){
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const pf = document.getElementById('pathway-filter').value;
+  const lf = document.getElementById('level-filter').value;
+  const filtered = visibleMembers().filter(m=>{
+    if(q && !m.name.toLowerCase().includes(q)) return false;
+    if(pf && m.pathway !== pf) return false;
+    if(lf !== ''){
+      const target = parseInt(lf);
+      if(target === 99 && !m.is_dtm && m.completed_levels < 5) return false;
+      if(target < 99 && m.completed_levels !== target) return false;
+    }
+    return true;
+  });
+  renderGroups(filtered);
+}
+
+// ── DETAIL MODAL ─────────────────────────────────────────────────────────────
+let detailChart = null;
+
+function openModal(idx){
+  const m = D.members[idx];
+  const pc = m.pathway_color || '#6b7280';
+  const pcd = hexDark(pc);
+  const scroll = document.getElementById('modal-scroll');
+
+  const totalLvls = 5;
+  const done = Math.min(m.completed_levels, totalLvls);
+  const pct = m.is_dtm ? 100 : Math.round((done / totalLvls) * 100);
+  const currentLvl = m.is_dtm ? 5 : Math.min(m.completed_levels + 1, 5);
+
+  // Roadmap progress bar width
+  const progressPct = m.is_dtm ? 100 : (done === 0 ? 4 : Math.min(((done - 0.5) / 4) * 100, 100));
+
+  // Header
+  const roleHTML = m.excom_role ? `<div class="modal-role-badge">⭐ ${m.excom_role}</div>` : '';
+  const mentorHTML = m.mentor ? `<div class="modal-mentor-line">👤 Mentor: <strong>${m.mentor}</strong></div>` : '';
+  const pathwayLabel = m.is_dtm ? 'Distinguished Toastmaster 🏆' : (m.pathway || 'Not Enrolled');
+
+  // Stats
+  const completedDisplay = m.is_dtm ? '5' : `${done}`;
+  const currentDisplay = m.is_dtm ? 'Complete!' : (m.not_enrolled ? 'N/A' : `Level ${currentLvl}`);
+  const pctDisplay = `${pct}%`;
+
+  // Roadmap nodes
+  const nodeStatuses = Array.from({length:5},(_,i)=>{
+    if(m.is_dtm) return 'complete';
+    if(i < done) return 'complete';
+    if(i === done) return 'current';
+    return 'future';
+  });
+  const levelTitles = (m.pathway && window.PATHWAY_STRUCTURES && window.PATHWAY_STRUCTURES[m.pathway])
+    ? Object.values(window.PATHWAY_STRUCTURES[m.pathway]).map(l=>l.title)
+    : ['Mastering Fundamentals','Learning Your Style','Increasing Knowledge','Building Skills','Demonstrating Expertise'];
+
+  const roadmapNodes = nodeStatuses.map((status, i)=>`
+    <div class="roadmap-node" onclick="toggleLevel(${i+1})">
+      <div class="roadmap-circle ${status}" style="--pc:${pc}">
+        ${status !== 'complete' ? i+1 : ''}
+      </div>
+      <div class="roadmap-label">Level ${i+1}<span>${levelTitles[i]||''}</span></div>
+    </div>`).join('');
+
+  // Level accordion
+  const levelsHTML = m.levels && m.levels.length ? m.levels.map(lvl=>{
+    const statusClass = lvl.status === 'complete' ? 'complete-lvl' : lvl.status === 'current' ? 'current-lvl' : '';
+    const badgeClass = lvl.status;
+    const pill = lvl.status === 'complete' ? '<span class="level-status-pill status-done">✓ Complete</span>'
+               : lvl.status === 'current' ? `<span class="level-status-pill status-current" style="--pc:${pc}">→ In Progress</span>`
+               : '<span class="level-status-pill status-future">○ Upcoming</span>';
+    const projects = lvl.projects.map(p=>{
+      const isElective = p.includes('Elective');
+      const isLevelComplete = lvl.status === 'complete';
+      const isDone = isLevelComplete || isProjectDone(m.name, p);
+      const cbId = `cb_${m.name.replace(/\s+/g,'_')}_${p.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'')}`;
+      return `<label class="project-row" for="${cbId}">
+        <input type="checkbox" class="proj-cb" id="${cbId}" style="--pc:${pc}"
+          ${isDone ? 'checked' : ''} ${isLevelComplete ? 'disabled' : ''}
+          onchange="toggleProject('${m.name.replace(/'/g,"\\'")}','${p.replace(/'/g,"\\'")}',this.checked,this)"
+          onclick="event.stopPropagation()"/>
+        <span class="proj-name ${isDone?'checked-name':''} ${isElective?'elective-proj':''}">${p}</span>
+      </label>`;
+    }).join('');
+    const elNote = lvl.status !== 'complete' && lvl.projects.some(p=>p.includes('Elective'))
+      ? `<div class="elective-note">💡 Elective options: Connect with Storytelling, Using Presentation Software, Inspire Your Audience, Persuasive Speaking, Focus on the Positive, and more.</div>` : '';
+    const nextBox = lvl.status === 'current' ? `<div class="next-step-box" style="--pc:${pc}">
+        <div class="next-step-label">🎯 Your Next Step</div>
+        <div class="next-step-text">${lvl.projects.filter(p=>!p.includes('Completion')&&!p.includes('Elective')&&!isProjectDone(m.name,p))[0] || lvl.projects.filter(p=>!isProjectDone(m.name,p))[0] || '🎉 All done — mark Level Completion!'}</div>
+      </div>` : '';
+    return `<div class="level-item ${statusClass}" id="lvl-item-${lvl.level}">
+      <div class="level-header" onclick="toggleLevel(${lvl.level})">
+        <div class="level-badge ${badgeClass}" style="${badgeClass==='current'?'background:'+pc:''}">L${lvl.level}</div>
+        <div class="level-info">
+          <div class="level-name">Level ${lvl.level} — ${lvl.title}</div>
+          <div class="level-subtitle">${lvl.projects.length} projects</div>
+        </div>
+        ${pill}
+        <span class="level-chevron" id="chev-${lvl.level}">▾</span>
+      </div>
+      <div class="level-content ${lvl.status === 'current' ? 'expanded' : ''}" id="lc-${lvl.level}">
+        ${projects}${elNote}${nextBox}
+      </div>
+    </div>`;
+  }).join('') : `<div style="padding:1rem;color:var(--muted);text-align:center">${m.not_enrolled ? '⚠️ Member is not yet enrolled in a Pathway. Ask the VP Education to help them enroll on Base Camp.' : '🏆 DTM — All pathways complete!'}</div>`;
+
+  scroll.innerHTML = `
+    <div class="modal-header" style="background:linear-gradient(135deg,${pc} 0%,${pcd} 100%)">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-member-name">${m.name}</div>
+      <div class="modal-pathway">${pathwayLabel}</div>
+      ${roleHTML}
+      ${mentorHTML}
+    </div>
+    <div class="modal-stats">
+      <div class="modal-stat">
+        <div class="ms-val" style="color:${pc}">${completedDisplay} <span style="font-size:1rem;color:#94a3b8">/ 5</span></div>
+        <div class="ms-lbl">Levels Done</div>
+      </div>
+      <div class="modal-stat">
+        <div class="ms-val" style="color:${pc}">${currentDisplay}</div>
+        <div class="ms-lbl">Currently On</div>
+      </div>
+      <div class="modal-stat">
+        <div class="ms-val" style="color:${pc}">${pctDisplay}</div>
+        <div class="ms-lbl">Complete</div>
+      </div>
+    </div>
+    <div class="modal-body-section">
+      <div class="section-title">Overall Progress</div>
+      <div class="chart-row">
+        <div class="donut-wrap">
+          <canvas id="donut-chart"></canvas>
+          <div class="donut-center">
+            <div class="donut-pct" style="color:${pc}">${pct}%</div>
+            <div class="donut-sub">complete</div>
+          </div>
+        </div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:${pc}"></div>${done} level${done!==1?'s':''} completed</div>
+          <div class="legend-item"><div class="legend-dot" style="background:${pc};opacity:.3"></div>${5-done} level${5-done!==1?'s':''} remaining</div>
+          ${m.not_enrolled ? '<div style="font-size:.8rem;color:#d97706;margin-top:.5rem">⚠️ Enroll in a Pathway to get started!</div>' : ''}
+          ${m.is_dtm ? '<div style="font-size:.8rem;color:#16a34a;margin-top:.5rem">🏆 Distinguished Toastmaster — highest honor!</div>' : ''}
+        </div>
+      </div>
+    </div>
+    <div class="roadmap" style="--pc:${pc}">
+      <div class="section-title" style="padding:0 0 .75rem 0">Level Journey</div>
+      <div class="roadmap-track" id="roadmap-track">
+        <div class="roadmap-progress" id="roadmap-prog" style="width:0;--pc:${pc}"></div>
+        ${roadmapNodes}
+      </div>
+    </div>
+    <div class="levels-accordion" style="--pc:${pc}">
+      <div class="section-title">Level Details
+        <span style="font-size:.65rem;font-weight:400;color:#94a3b8;text-transform:none;letter-spacing:0;margin-left:.5rem">
+          ☑ Check projects as members complete them — saved in your browser
+        </span>
+      </div>
+      ${levelsHTML}
+    </div>`;
+
+  // Open modal
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  // Draw donut chart
+  if(detailChart){ detailChart.destroy(); detailChart=null; }
+  const ctx = document.getElementById('donut-chart').getContext('2d');
+  detailChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      datasets:[{
+        data: [done, Math.max(0, 5-done)],
+        backgroundColor: [pc, '#e2e8f0'],
+        borderWidth: 0,
+        borderRadius: 4,
+      }]
+    },
+    options:{
+      cutout:'72%', plugins:{legend:{display:false},tooltip:{enabled:false}},
+      animation:{duration:800, easing:'easeInOutQuart'},
+    }
+  });
+
+  // Animate roadmap progress bar
+  setTimeout(()=>{
+    const prog = document.getElementById('roadmap-prog');
+    if(prog){
+      const trackW = document.getElementById('roadmap-track').offsetWidth - 60;
+      const fillPx = done === 0 ? 0 : done >= 5 ? trackW : Math.round((done / 4) * trackW);
+      prog.style.width = fillPx + 'px';
+    }
+  }, 50);
+}
+
+function toggleLevel(n){
+  const lc = document.getElementById('lc-'+n);
+  const chev = document.getElementById('chev-'+n);
+  if(!lc) return;
+  const open = lc.classList.toggle('expanded');
+  if(chev) chev.textContent = open ? '▴' : '▾';
+}
+
+function toggleProject(memberName, projectName, done, cb){
+  setProjectDone(memberName, projectName, done);
+  const label = cb.closest('label');
+  const nameEl = label && label.querySelector('.proj-name');
+  if(nameEl){ done ? nameEl.classList.add('checked-name') : nameEl.classList.remove('checked-name'); }
+  // Refresh the card in the grid to update the level dots
+  renderGroups(visibleMembers());
+}
+
+function closeModal(e){
+  if(e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') { document.getElementById('modal-overlay').classList.remove('open'); document.body.style.overflow=''; }});
+
+// ── EXCOM PAGE ───────────────────────────────────────────────────────────────
+const EXCOM_ROLE_CONFIG = {
+  'Club President':   {icon:'👑', color:'#9b1c1c', dark:'#7f1d1d'},
+  'VP Education':     {icon:'📚', color:'#2563eb', dark:'#1e40af'},
+  'VP Membership':    {icon:'🤝', color:'#059669', dark:'#065f46'},
+  'VP PR':            {icon:'📣', color:'#7c3aed', dark:'#4c1d95'},
+  'Club Secretary':   {icon:'📝', color:'#0891b2', dark:'#0e7490'},
+  'Club Treasurer':   {icon:'💰', color:'#d97706', dark:'#92400e'},
+  'Sergeant at Arms': {icon:'🛡️', color:'#374151', dark:'#1f2937'},
+};
+
+const ROLE_ORDER = ['VP Education','VP Membership','VP PR','Club Secretary','Club Treasurer','Sergeant at Arms'];
+
+function initExcomPage(){
+  if(!D) return;
+  const excom = D.members.filter(m => m.excom_role);
+  const president = excom.find(m => m.excom_role === 'Club President');
+  const officers = excom.filter(m => m.excom_role !== 'Club President')
+    .sort((a,b) => ROLE_ORDER.indexOf(a.excom_role) - ROLE_ORDER.indexOf(b.excom_role));
+
+  let html = '';
+  if(president){
+    html += `<div class="excom-section-label">President</div>
+    <div class="excom-president-wrap">${excomPresidentCard(president)}</div>`;
+  }
+  if(officers.length){
+    // Inject vacant Sergeant at Arms card at the end of officers
+    const officerCards = officers.map(m => excomOfficerCard(m)).join('');
+    const vacantCard = excomVacantCard('Sergeant at Arms', '🛡️');
+    html += `<div class="excom-section-label">Officers</div>
+    <div class="excom-officers-grid">${officerCards}${vacantCard}</div>`;
+  }
+  document.getElementById('excom-content').innerHTML = html;
+}
+
+function excomPips(m, pipClass, pcColor){
+  if(!m.pathway || !m.levels) return {html:'', label:''};
+  const curLvl = m.levels.find(l=>l.status==='current');
+  if(!curLvl) return {html:'', label:''};
+  const firstUndone = curLvl.projects.findIndex(p=>!isProjectDone(m.name,p));
+  const done = firstUndone === -1 ? curLvl.projects.length : firstUndone;
+  const html = curLvl.projects.map((p,i)=>{
+    const isDone = isProjectDone(m.name,p);
+    const cls = isDone?'done':(i===firstUndone?'next':'todo');
+    return `<div class="${pipClass} ${cls}" style="--pc:${pcColor}" title="${p}"></div>`;
+  }).join('');
+  return {html, label:`${done} of ${curLvl.projects.length} projects in Level ${m.completed_levels+1}`};
+}
+
+function payBadgeHTML(payNorm){
+  const map = {
+    paid:    {bg:'#dcfce7',txt:'#15803d',lbl:'✓ Paid'},
+    unpaid:  {bg:'#fee2e2',txt:'#dc2626',lbl:'✗ Unpaid'},
+    pending: {bg:'#fef3c7',txt:'#92400e',lbl:'⏳ Pending'},
+  };
+  const p = map[payNorm] || {bg:'#f1f5f9',txt:'#64748b',lbl:'Unknown'};
+  return `<span style="display:inline-flex;align-items:center;background:${p.bg};color:${p.txt};padding:.2rem .65rem;border-radius:20px;font-size:.7rem;font-weight:700">${p.lbl}</span>`;
+}
+
+function excomPresidentCard(m){
+  const pc = m.pathway_color || '#9b1c1c';
+  const cfg = EXCOM_ROLE_CONFIG[m.excom_role] || {icon:'⭐', color:'#9b1c1c', dark:'#7f1d1d'};
+  const initials = m.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  const origIdx = D.members.indexOf(m);
+  const {html: pipsHTML, label: pipLabel} = excomPips(m, 'ecp-pip', pc);
+  const lvlDone = Math.max(m.completed_levels, 0);
+
+  return `<div class="excom-president-card" onclick="openModal(${origIdx})">
+    <div class="ecp-header" style="background:linear-gradient(135deg,${cfg.dark},${cfg.color} 70%)">
+      <div class="ecp-avatar">${initials}</div>
+      <div>
+        <div class="ecp-name">${m.name}</div>
+        <div class="ecp-role-badge">${cfg.icon} ${m.excom_role}</div>
+      </div>
+    </div>
+    <div class="ecp-body">
+      <div class="ecp-stat">
+        <div class="ecp-stat-val" style="color:${cfg.color}">${lvlDone}/5</div>
+        <div class="ecp-stat-lbl">Levels Done</div>
+      </div>
+      <div class="ecp-divider"></div>
+      <div class="ecp-pathway-info" style="--pc:${pc}">
+        ${m.pathway
+          ? `<div class="ecp-pathway-name" style="color:${pc}">📚 ${m.pathway}</div>
+             ${pipsHTML ? `<div class="ecp-pips">${pipsHTML}</div><div class="ecp-pip-label">${pipLabel}</div>` : ''}`
+          : `<div class="ecp-pathway-name" style="color:var(--muted)">Not enrolled in a pathway</div>`}
+        ${m.mentor ? `<div class="ecp-mentor">👤 Mentor: ${m.mentor}</div>` : ''}
+        <div style="margin-top:.75rem">${payBadgeHTML(m.pay_norm)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function excomOfficerCard(m){
+  const pc = m.pathway_color || '#6b7280';
+  const cfg = EXCOM_ROLE_CONFIG[m.excom_role] || {icon:'⭐', color:'#6b7280', dark:'#4b5563'};
+  const initials = m.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  const origIdx = D.members.indexOf(m);
+  const {html: pipsHTML, label: pipLabel} = excomPips(m, 'eco-pip', pc);
+  const lvlText = m.pathway ? `Working on Level ${Math.max(m.completed_levels+1,1)}` : 'No pathway enrolled';
+
+  return `<div class="excom-officer-card" onclick="openModal(${origIdx})">
+    <div class="eco-header" style="background:linear-gradient(135deg,${cfg.dark},${cfg.color} 80%)">
+      <div class="eco-avatar">${initials}</div>
+      <div>
+        <div class="eco-name">${m.name}</div>
+        <div class="eco-role-badge">${cfg.icon} ${m.excom_role}</div>
+      </div>
+    </div>
+    <div class="eco-body">
+      <div class="eco-pathway" style="color:${m.pathway ? pc : 'var(--muted)'}">
+        ${m.pathway
+          ? `<span style="background:${pc}18;padding:.2rem .55rem;border-radius:8px">📚 ${m.pathway}</span>`
+          : '⚠️ Not enrolled in a pathway'}
+      </div>
+      ${pipsHTML
+        ? `<div class="eco-pips" style="--pc:${pc}">${pipsHTML}
+           <span style="font-size:.67rem;color:var(--muted);margin-left:.2rem">${pipLabel.split(' of ')[0]}/${m.levels?.find(l=>l.status==='current')?.projects.length||'?'}</span>
+           </div>`
+        : ''}
+      <div class="eco-footer">
+        <span class="eco-level-text">${lvlText}</span>
+        ${payBadgeHTML(m.pay_norm)}
+      </div>
+      ${m.mentor ? `<div class="eco-mentor">👤 Mentor: ${m.mentor}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function excomVacantCard(role, icon){
+  const cfg = EXCOM_ROLE_CONFIG[role] || {icon:'❓', color:'#b45309', dark:'#78350f'};
+  return `<div class="eco-vacant">
+    <div class="eco-vacant-header" style="background:linear-gradient(135deg,${cfg.dark},${cfg.color} 80%)">
+      <div class="eco-avatar" style="background:rgba(255,255,255,.15);border:2.5px dashed rgba(255,255,255,.5);font-size:1.4rem">?</div>
+      <div>
+        <div class="eco-name" style="opacity:.7;font-style:italic">Position Vacant</div>
+        <div class="eco-role-badge">${icon} ${role}</div>
+      </div>
+    </div>
+    <div class="eco-vacant-body">
+      <div class="eco-vacant-alert">
+        <div class="eco-vacant-alert-icon">⚠️</div>
+        <div>
+          <div class="eco-vacant-alert-text">This role needs to be filled</div>
+          <div class="eco-vacant-alert-sub">Raise this at the next ExCom meeting to nominate a Sergeant at Arms for the club.</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── MEMBERSHIP PAGE ──────────────────────────────────────────────────────────
+let memUnlocked = sessionStorage.getItem('excom_unlocked') === '1';
+
+function initMembershipPage(){
+  if(memUnlocked) showMemContent();
+  else document.getElementById('lock-screen').style.display='block';
+}
+
+function checkPw(){
+  const v = document.getElementById('pw-input').value;
+  if(v === PW){
+    memUnlocked = true;
+    sessionStorage.setItem('excom_unlocked','1');
+    document.getElementById('pw-error').style.display='none';
+    showMemContent();
+    document.getElementById('logout-btn').style.display='';
+  } else {
+    document.getElementById('pw-error').style.display='block';
+    document.getElementById('pw-input').value='';
+    document.getElementById('pw-input').focus();
+  }
+}
+
+function logout(){
+  memUnlocked = false;
+  sessionStorage.removeItem('excom_unlocked');
+  document.getElementById('logout-btn').style.display='none';
+  document.getElementById('mem-content').style.display='none';
+  document.getElementById('lock-screen').style.display='block';
+  document.getElementById('pw-input').value='';
+}
+
+function showMemContent(){
+  document.getElementById('lock-screen').style.display='none';
+  document.getElementById('mem-content').style.display='block';
+  document.getElementById('logout-btn').style.display='';
+  renderMembership('all');
+
+  const paid   = M.filter(m=>m.pay_norm==='paid').length;
+  const unpaid = M.filter(m=>m.pay_norm==='unpaid').length;
+  const pending= M.filter(m=>m.pay_norm==='pending').length;
+  document.getElementById('mem-summary').innerHTML = `
+    <div class="mem-stat" style="--c:#dc2626"><div class="mv">${unpaid}</div><div class="ml">⚠️ Unpaid</div></div>
+    <div class="mem-stat" style="--c:#d97706"><div class="mv">${pending}</div><div class="ml">⏳ Pending</div></div>
+    <div class="mem-stat" style="--c:#16a34a"><div class="mv">${paid}</div><div class="ml">✅ Paid</div></div>
+    <div class="mem-stat" style="--c:#7c3aed"><div class="mv">${M.length}</div><div class="ml">Total</div></div>`;
+}
+
+function filterMem(filter, btn){
+  document.querySelectorAll('.mfb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMembership(filter);
+}
+
+function renderMembership(filter){
+  const rows = M.filter(m=> filter==='all' || m.pay_norm===filter);
+  const tbody = document.getElementById('mem-tbody');
+  if(!rows.length){
+    tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:2rem;color:#94a3b8">No members in this category.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map((m,i)=>`<tr>
+    <td style="color:#94a3b8;font-size:.8rem">${i+1}</td>
+    <td style="font-weight:600">${m.name}</td>
+    <td>${m.member_since || '—'}</td>
+    <td><span class="pay-badge ${m.pay_norm}">${
+      m.pay_norm==='paid'?'✅ Paid':m.pay_norm==='unpaid'?'❌ Unpaid':m.pay_norm==='pending'?'⏳ Pending':'—'
+    }</span></td>
+    <td>${m.pay_date || '—'}</td>
+    <td>${m.excom_role ? `<span class="role-chip">${m.excom_role}</span>` : '—'}</td>
+    <td style="font-size:.8rem;color:#64748b">${m.pathway || '—'}</td>
+  </tr>`).join('');
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+if(D){
+  initPathwayPage();
+  document.getElementById('tab-excom-btn').addEventListener('click', ()=>{ if(!document.getElementById('excom-content').children.length) initExcomPage(); });
+  document.getElementById('tab-membership-btn').addEventListener('click', initMembershipPage);
+}
+</script>
+</body>
+</html>

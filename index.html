@@ -73,6 +73,7 @@ select{padding:.6rem 1rem;border:1px solid var(--border);border-radius:10px;font
 .mr-name{font-weight:600;font-size:.875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mr-meta{display:flex;align-items:center;gap:.4rem;margin-top:.15rem;flex-wrap:wrap;}
 .mr-pathway-tag{font-size:.68rem;color:var(--muted);}
+.mr-level-tag{font-size:.68rem;font-weight:700;padding:.1rem .4rem;background:#f1f5f9;border-radius:5px;}
 .mr-role-tag{font-size:.63rem;padding:.1rem .4rem;background:#e0e7ff;color:#4338ca;border-radius:5px;font-weight:600;}
 .mr-mentor-tag{font-size:.63rem;padding:.1rem .4rem;background:#ecfdf5;color:#065f46;border-radius:5px;font-weight:500;}
 .modal-mentor-line{display:inline-flex;align-items:center;gap:.35rem;background:rgba(255,255,255,.15);padding:.2rem .75rem;border-radius:20px;font-size:.73rem;margin-top:.35rem;border:1px solid rgba(255,255,255,.25);}
@@ -473,7 +474,7 @@ function switchTab(t){
 // ── PATHWAY PAGE ─────────────────────────────────────────────────────────────
 // Members visible on the pathway page: paid/pending + Prathik Shetty as a guest
 function visibleMembers(){
-  return D.members.filter(m => m.pay_norm !== 'unpaid' || m.name === 'Prathik Shetty');
+  return D.members; // show all members
 }
 
 function initPathwayPage(){
@@ -559,35 +560,46 @@ function renderGroupHTML(group){
 function memberRowHTML(m, origIdx){
   const pc = m.pathway_color || '#6b7280';
   const initials = m.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-  let pipsHTML = '';
-  if(!m.is_dtm && !m.not_enrolled && m.pathway && m.levels){
+  let progressHTML = '';
+  let levelText = '';
+  let progressText = '';
+
+  if(m.is_dtm){
+    levelText = 'DTM';
+    progressHTML = `<span style="font-size:.75rem;color:#92400e;font-weight:700">🏆 DTM</span>`;
+  } else if(!m.not_enrolled && m.pathway && m.levels){
     const curLvl = m.levels.find(l=>l.status==='current');
+    const lvlNum = curLvl ? curLvl.level : Math.min(m.completed_levels+1,5);
+    levelText = `Level ${lvlNum}`;
     if(curLvl){
       const firstUndoneIdx = curLvl.projects.findIndex(p=>!isProjectDone(m.name,p));
       const doneCount = firstUndoneIdx === -1 ? curLvl.projects.length : firstUndoneIdx;
       const total = curLvl.projects.length;
+      progressText = `${doneCount}/${total}`;
       const pips = curLvl.projects.map((p,i)=>{
         const done = isProjectDone(m.name,p);
         const cls = done?'done':(i===firstUndoneIdx?'next':'todo');
         return `<div class="pip ${cls}" style="--pc:${pc}" title="${p}"></div>`;
       }).join('');
-      pipsHTML = `<div class="proj-pips">${pips}</div><div class="proj-progress-text">${doneCount}/${total}</div>`;
+      progressHTML = `<div class="proj-pips">${pips}</div><div class="proj-progress-text">${progressText}</div>`;
     }
-  } else if(m.is_dtm){
-    pipsHTML = `<span style="font-size:.75rem;color:#92400e;font-weight:700">🏆 DTM</span>`;
+  } else {
+    levelText = 'Not Enrolled';
   }
-  const roleTag = m.excom_role ? `<span class="mr-role-tag">⭐ ${m.excom_role}</span>` : '';
+
   const mentorTag = m.mentor ? `<span class="mr-mentor-tag">👤 ${m.mentor}</span>` : '';
   const pathwayTag = m.pathway&&!m.not_enrolled&&!m.is_dtm
     ? `<span class="mr-pathway-tag" style="color:${pc}">📚 ${m.pathway}</span>` : '';
+  const levelTag = levelText ? `<span class="mr-level-tag" style="color:${m.is_dtm?'#92400e':pc}">${levelText}</span>` : '';
+
   return `<div class="member-row" onclick="openModal(${origIdx})">
     <div class="pay-mini ${m.pay_norm}"></div>
     <div class="mr-avatar" style="background:${pc}">${initials}</div>
     <div class="mr-info">
       <div class="mr-name">${m.name}</div>
-      <div class="mr-meta">${pathwayTag}${roleTag}${mentorTag}</div>
+      <div class="mr-meta">${pathwayTag}${levelTag}${mentorTag}</div>
     </div>
-    ${pipsHTML}
+    ${progressHTML}
   </div>`;
 }
 

@@ -473,13 +473,14 @@ function switchTab(t){
 
 // ── PATHWAY PAGE ─────────────────────────────────────────────────────────────
 // Members visible on the pathway page: paid/pending + Prathik Shetty as a guest
-function visibleMembers(){
-  return D.members; // show all members
+function visibleMembers(includeUnpaid){
+  if(includeUnpaid) return D.members;
+  return D.members.filter(m => m.pay_norm !== 'unpaid' || m.name === 'Prathik Shetty');
 }
 
 function initPathwayPage(){
   if(!D) return;
-  const members = visibleMembers();
+  const members = visibleMembers(true); // pathway page: show all members
 
   // Summary strip
   const pathways = {};

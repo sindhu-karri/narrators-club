@@ -25,11 +25,7 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r scripts/requirements.txt
 
-      - name: Write member data from secret
-        # GUIDs are sensitive — stored as a GitHub Secret, never committed
-        run: echo '${{ secrets.MEMBER_MODALS_JSON }}' > scripts/member_modals.json
-
-      - name: Fetch Base Camp data
+      - name: Scrape members + fetch Base Camp data
         env:
           TM_EMAIL: ${{ secrets.TM_EMAIL }}
           TM_PASSWORD: ${{ secrets.TM_PASSWORD }}

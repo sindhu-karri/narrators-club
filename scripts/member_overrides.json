@@ -1,0 +1,14 @@
+{
+  "_comment": "Club-specific metadata. Safe to commit — no GUIDs here. Update when mentors change or new members join.",
+
+  "mentors": {
+    "Yamuna J K":                      "Dumpa Venkata Sai Jagadeesh",
+    "Sheetal Avula":                   "Devi Shankar Jha",
+    "Karthik Arasaiah":                "Sudhanshu Barthwal",
+    "Sahil Aggarwal":                  "Sudhanshu Barthwal"
+  },
+
+  "new_members": {
+    "Sanjay Thillaivasan": { "joined": "April 27, 2026" }
+  }
+}

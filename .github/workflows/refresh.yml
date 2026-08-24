@@ -1,0 +1,56 @@
+name: 🔄 Refresh Club Data
+
+on:
+  schedule:
+    # Every day at 18:30 UTC = midnight IST
+    - cron: '30 18 * * *'
+  workflow_dispatch:
+    # Also allow manual trigger from GitHub Actions UI
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to commit data.js back
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Write member data from secret
+        # GUIDs are sensitive — stored as a GitHub Secret, never committed
+        run: echo '${{ secrets.MEMBER_MODALS_JSON }}' > scripts/member_modals.json
+
+      - name: Fetch Base Camp data
+        env:
+          TM_EMAIL: ${{ secrets.TM_EMAIL }}
+          TM_PASSWORD: ${{ secrets.TM_PASSWORD }}
+        run: |
+          cd scripts
+          python fetch_ci.py
+
+      - name: Generate data.js
+        run: |
+          cd scripts
+          python generate_ci.py
+
+      - name: Commit and push if data changed
+        run: |
+          git config user.name "Narrators Bot"
+          git config user.email "actions@github.com"
+          git add data.js
+          if git diff --staged --quiet; then
+            echo "No changes to data.js — skipping commit"
+          else
+            git commit -m "🔄 Auto-refresh: Base Camp data $(date +'%d %b %Y')"
+            git push
+            echo "✅ data.js updated and pushed"
+          fi

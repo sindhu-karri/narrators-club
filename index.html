@@ -100,6 +100,47 @@ select{padding:.6rem 1rem;border:1px solid var(--border);border-radius:10px;font
 .pathway-dot{width:7px;height:7px;border-radius:50%;background:var(--pc);}
 .dtm-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .65rem;background:#fef3c7;color:#92400e;border-radius:20px;font-size:.72rem;font-weight:700;}
 
+/* ── FUN PROGRESS BARS (member rows) ── */
+.pb-wrap{flex:1;height:16px;background:#e9ecef;border-radius:50px;overflow:hidden;box-shadow:inset 0 2px 4px rgba(0,0,0,.1);min-width:60px;}
+.pb-fill{height:100%;border-radius:50px;position:relative;overflow:hidden;transition:width 1.2s cubic-bezier(.34,1.56,.64,1);}
+.pb-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.45) 50%,transparent 100%);background-size:200% 100%;animation:pb-shimmer 2.5s linear infinite;}
+.pb-fill.pb-done{background:linear-gradient(90deg,#16a34a,#4ade80)!important;}
+.pb-fill.pb-done::after{display:none;}
+@keyframes pb-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.pb-count{font-size:.75rem;font-weight:800;white-space:nowrap;min-width:2.5rem;text-align:right;}
+.pb-bar-row{display:flex;align-items:center;gap:.6rem;flex:2;min-width:0;}
+.rank-medal{font-size:1.1rem;width:26px;flex-shrink:0;text-align:center;line-height:1;}
+.group-level-badge{width:40px;height:40px;border-radius:12px;background:var(--gc,#7c3aed)18;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
+
+/* ── MODAL LEVEL BARS ── */
+.ml-bar-section{padding:1.5rem 2rem 2rem;}
+.ml-level-row{border:2px solid var(--border);border-radius:16px;margin-bottom:.85rem;overflow:hidden;transition:box-shadow .2s,border-color .2s;cursor:pointer;}
+.ml-level-row:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);}
+.ml-level-row.ml-complete{border-color:#86efac;}
+.ml-level-row.ml-current{border-color:var(--pc);box-shadow:0 0 0 4px color-mix(in srgb,var(--pc) 10%,transparent);}
+.ml-level-row.ml-future{opacity:.6;}
+.ml-level-header{display:flex;align-items:center;gap:.85rem;padding:1rem 1.25rem;}
+.ml-level-emoji{font-size:1.75rem;flex-shrink:0;width:42px;text-align:center;line-height:1;}
+.ml-level-info{min-width:0;width:160px;flex-shrink:0;}
+.ml-level-title{font-weight:700;font-size:.875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ml-level-sub{font-size:.7rem;color:var(--muted);margin-top:.1rem;}
+.ml-bar-area{flex:1;min-width:80px;}
+.ml-bar-wrap{height:22px;background:#e9ecef;border-radius:50px;overflow:hidden;box-shadow:inset 0 2px 6px rgba(0,0,0,.1);}
+.ml-bar-fill{height:100%;border-radius:50px;position:relative;overflow:hidden;transition:width 1.4s cubic-bezier(.34,1.56,.64,1);}
+.ml-bar-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.4) 50%,transparent 100%);background-size:200% 100%;animation:pb-shimmer 2.5s linear infinite;}
+.ml-bar-fill.ml-done{background:linear-gradient(90deg,#15803d,#4ade80)!important;}
+.ml-bar-fill.ml-done::after{display:none;}
+.ml-bar-fill.ml-locked{background:#e2e8f0!important;}
+.ml-bar-fill.ml-locked::after{display:none;}
+.ml-count{font-size:.85rem;font-weight:800;white-space:nowrap;min-width:3rem;text-align:right;}
+.ml-status-pill{font-size:.65rem;font-weight:700;padding:.25rem .7rem;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.ml-status-pill.done{background:#dcfce7;color:#15803d;}
+.ml-status-pill.current{background:color-mix(in srgb,var(--pc) 12%,white);color:var(--pc);}
+.ml-status-pill.locked{background:#f1f5f9;color:#94a3b8;}
+.ml-chevron{color:var(--muted);transition:transform .2s;font-size:.9rem;margin-left:.25rem;flex-shrink:0;}
+.ml-projects{display:none;padding:.5rem 1.25rem 1rem 4rem;border-top:1px solid var(--border);background:#fafafa;}
+.ml-projects.open{display:block;}
+
 /* ── MODAL ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(4px);}
 .modal-overlay.open{opacity:1;pointer-events:all;}
@@ -543,15 +584,31 @@ function renderGroups(members){
 function renderGroupHTML(group){
   const lvlNum = group.sortNum <= 5 ? group.sortNum : null;
   const color = lvlNum ? (GROUP_COLORS[lvlNum]||'#6b7280') : '#6b7280';
+  const lvlEmojis = {1:'🌱',2:'🌿',3:'🌳',4:'🌲',5:'🏅'};
+  const emoji = lvlNum ? (lvlEmojis[lvlNum]||'⭐') : (group.sortNum===98 ? '🏆' : '❓');
+
+  // Sort members by progress (most done = top = leaderboard)
+  const getScore = m => {
+    if(m.is_dtm || m.completed_levels >= 5) return 1000;
+    const cur = m.levels?.find(l=>l.status==='current');
+    if(!cur) return 0;
+    const fu = cur.projects.findIndex(p=>!isProjectDone(m.name,p));
+    const d = fu === -1 ? cur.projects.length : fu;
+    return cur.projects.length > 0 ? d / cur.projects.length : 0;
+  };
+  const sorted = [...group.members].sort((a,b) => getScore(b) - getScore(a));
+
   const pathways = [...new Set(group.members.filter(m=>m.pathway&&!m.not_enrolled&&!m.is_dtm).map(m=>m.pathway))];
   const pathwayTags = pathways.map(p=>{
     const pc = group.members.find(m=>m.pathway===p)?.pathway_color || '#6b7280';
     return `<span class="gp-tag" style="color:${pc};border-color:${pc}44;background:${pc}11">${p}</span>`;
   }).join('');
-  const rows = group.members.map(m => memberRowHTML(m, D.members.indexOf(m))).join('');
+
+  const rows = sorted.map((m, i) => memberRowHTML(m, D.members.indexOf(m), i+1)).join('');
+
   return `<div class="level-group">
     <div class="group-header" style="--gc:${color}">
-      <div class="group-level-badge">${lvlNum ? 'L'+lvlNum : '—'}</div>
+      <div class="group-level-badge" style="--gc:${color}">${emoji}</div>
       <div class="group-title">${group.label}</div>
       ${pathwayTags ? `<div class="group-pathway-tags">${pathwayTags}</div>` : ''}
       <div class="group-count">${group.members.length} member${group.members.length!==1?'s':''}</div>
@@ -560,52 +617,48 @@ function renderGroupHTML(group){
   </div>`;
 }
 
-function memberRowHTML(m, origIdx){
+function memberRowHTML(m, origIdx, rank){
   const pc = m.pathway_color || '#6b7280';
   const initials = m.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-  let progressHTML = '';
-  let levelText = '';
-  let progressText = '';
 
-  if(m.is_dtm){
-    levelText = 'DTM';
-    progressHTML = `<span style="font-size:.75rem;color:#92400e;font-weight:700">🏆 DTM</span>`;
-  } else if(!m.not_enrolled && m.pathway && m.levels){
+  let done = 0, total = 5, barPct = 0, barClass = '';
+  if(m.is_dtm || m.completed_levels >= 5){
+    done = 5; total = 5; barPct = 100; barClass = 'pb-done';
+  } else if(!m.not_enrolled && m.levels){
     const curLvl = m.levels.find(l=>l.status==='current');
-    const lvlNum = curLvl ? curLvl.level : Math.min(m.completed_levels+1,5);
-    levelText = `Level ${lvlNum}`;
     if(curLvl){
-      const firstUndoneIdx = curLvl.projects.findIndex(p=>!isProjectDone(m.name,p));
-      const doneCount = firstUndoneIdx === -1 ? curLvl.projects.length : firstUndoneIdx;
-      const total = curLvl.projects.length;
-      progressText = `${doneCount}/${total}`;
-      const pips = curLvl.projects.map((p,i)=>{
-        const done = isProjectDone(m.name,p);
-        const cls = done?'done':(i===firstUndoneIdx?'next':'todo');
-        return `<div class="pip ${cls}" style="--pc:${pc}" title="${p}"></div>`;
-      }).join('');
-      progressHTML = `<div class="proj-pips">${pips}</div><div class="proj-progress-text">${progressText}</div>`;
+      const firstUndone = curLvl.projects.findIndex(p=>!isProjectDone(m.name,p));
+      done = firstUndone === -1 ? curLvl.projects.length : firstUndone;
+      total = curLvl.projects.length;
+      barPct = total > 0 ? Math.round((done/total)*100) : 0;
     }
-  } else {
-    levelText = 'Not Enrolled';
   }
 
+  const medals = ['🥇','🥈','🥉'];
+  const rankHTML = rank !== undefined
+    ? (rank <= 3 ? `<span style="font-size:1.15rem">${medals[rank-1]}</span>`
+       : `<span style="font-size:.65rem;color:var(--muted);font-weight:700;display:block;text-align:center">${rank}</span>`)
+    : '';
+
   const mentorTag = m.mentor ? `<span class="mr-mentor-tag">👤 ${m.mentor}</span>` : '';
+  const newTag = m.is_new_member ? `<span class="mr-new-tag">🆕</span>` : '';
   const pathwayTag = m.pathway&&!m.not_enrolled&&!m.is_dtm
     ? `<span class="mr-pathway-tag" style="color:${pc}">📚 ${m.pathway}</span>` : '';
-  const levelTag = levelText ? `<span class="mr-level-tag" style="color:${m.is_dtm?'#92400e':pc}">${levelText}</span>` : '';
-  const newTag = m.is_new_member ? `<span class="mr-new-tag">🆕 New</span>` : '';
-  const joinLine = m.member_since ? `<div class="mr-join-date">Joined: ${m.member_since}</div>` : '';
+
+  const barColor = barClass ? '' : `background:linear-gradient(90deg,${pc},color-mix(in srgb,${pc} 70%,white))`;
+  const countColor = barClass ? '#16a34a' : pc;
 
   return `<div class="member-row" onclick="openModal(${origIdx})">
-    <div class="pay-mini ${m.pay_norm}"></div>
+    ${rank !== undefined ? `<div class="rank-medal">${rankHTML}</div>` : ''}
     <div class="mr-avatar" style="background:${pc}">${initials}</div>
     <div class="mr-info">
       <div class="mr-name">${m.name}${newTag}</div>
-      <div class="mr-meta">${pathwayTag}${levelTag}${mentorTag}</div>
-      ${joinLine}
+      <div class="mr-meta">${pathwayTag}${mentorTag}</div>
     </div>
-    ${progressHTML}
+    <div class="pb-bar-row" style="--pc:${pc}">
+      <div class="pb-wrap"><div class="pb-fill ${barClass}" style="width:${barPct}%;${barColor}"></div></div>
+      <div class="pb-count" style="color:${countColor}">${done}<span style="font-weight:400;color:var(--muted)">/${total}</span></div>
+    </div>
   </div>`;
 }
 
@@ -629,16 +682,188 @@ function filterCards(){
 // ── DETAIL MODAL ─────────────────────────────────────────────────────────────
 let detailChart = null;
 
+const LVL_EMOJIS = ['🌱','🌿','🌳','🌲','🏅'];
+const LVL_TITLES_DEFAULT = ['Mastering Fundamentals','Learning Your Style','Increasing Knowledge','Building Skills','Demonstrating Expertise'];
+
 function openModal(idx){
   const m = D.members[idx];
   const pc = m.pathway_color || '#6b7280';
   const pcd = hexDark(pc);
   const scroll = document.getElementById('modal-scroll');
 
-  const totalLvls = 5;
-  const done = Math.min(m.completed_levels, totalLvls);
-  const pct = m.is_dtm ? 100 : Math.round((done / totalLvls) * 100);
-  const currentLvl = m.is_dtm ? 5 : Math.min(m.completed_levels + 1, 5);
+  const done = Math.min(m.completed_levels, 5);
+  const pct = m.is_dtm ? 100 : Math.round((done/5)*100);
+  const currentLvl = m.is_dtm ? 5 : Math.min(m.completed_levels+1,5);
+
+  const roleHTML = m.excom_role ? `<div class="modal-role-badge">⭐ ${m.excom_role}</div>` : '';
+  const mentorHTML = m.mentor ? `<div class="modal-mentor-line">👤 Mentor: <strong>${m.mentor}</strong></div>` : '';
+  const pathwayLabel = m.is_dtm ? 'Distinguished Toastmaster 🏆' : (m.pathway || 'Not Enrolled');
+
+  const lvlTitles = (m.pathway && window.PATHWAY_STRUCTURES?.[m.pathway])
+    ? Object.values(window.PATHWAY_STRUCTURES[m.pathway]).map(l=>l.title)
+    : LVL_TITLES_DEFAULT;
+
+  // Build level bars HTML
+  let levelsHTML = '';
+  if(m.not_enrolled && !m.is_dtm){
+    levelsHTML = `<div style="padding:2rem;text-align:center;color:var(--muted);font-size:.9rem">
+      ⚠️ Not yet enrolled in a Pathway.<br>Ask VP Education for help enrolling on Base Camp.</div>`;
+  } else if(m.is_dtm){
+    levelsHTML = `<div style="padding:2rem;text-align:center;font-size:1.3rem;font-weight:800;color:#92400e">
+      🏆 Distinguished Toastmaster — All Levels Complete!</div>`;
+  } else {
+    levelsHTML = Array.from({length:5}, (_, i) => {
+      const n = i+1;
+      const lvl = m.levels?.find(l=>l.level===n);
+      const status = lvl?.status || (n <= done ? 'complete' : 'future');
+      const total = lvl?.projects.length || 3;
+      const emoji = LVL_EMOJIS[i];
+      const title = lvlTitles[i] || `Level ${n}`;
+      const isOpen = status === 'current';
+
+      let doneCount, barPct, fillClass, countColor, pillHTML;
+      if(status === 'complete'){
+        doneCount = total; barPct = 100; fillClass = 'ml-done'; countColor = '#15803d';
+        pillHTML = `<span class="ml-status-pill done">✅ Done</span>`;
+      } else if(status === 'current'){
+        const fu = lvl.projects.findIndex(p=>!isProjectDone(m.name,p));
+        doneCount = fu === -1 ? total : fu;
+        barPct = total > 0 ? Math.round((doneCount/total)*100) : 0;
+        fillClass = ''; countColor = pc;
+        pillHTML = `<span class="ml-status-pill current">🔥 In Progress</span>`;
+      } else {
+        doneCount = 0; barPct = 0; fillClass = 'ml-locked'; countColor = '#94a3b8';
+        pillHTML = `<span class="ml-status-pill locked">🔒 Locked</span>`;
+      }
+
+      const barColorStyle = fillClass ? '' : `background:linear-gradient(90deg,${pc},color-mix(in srgb,${pc} 65%,white))`;
+
+      // Project checklist rows
+      const projectsHTML = lvl ? lvl.projects.map(p=>{
+        const isElective = p.includes('Elective');
+        const isLvlDone = status === 'complete';
+        const isDone = isLvlDone || isProjectDone(m.name, p);
+        const cbId = `cb_${m.name.replace(/\s+/g,'_')}_${p.replace(/[^a-zA-Z0-9_]/g,'_')}`;
+        return `<label class="project-row" for="${cbId}">
+          <input type="checkbox" class="proj-cb" id="${cbId}" style="--pc:${pc}"
+            ${isDone?'checked':''} ${isLvlDone?'disabled':''}
+            onchange="toggleProject('${m.name.replace(/'/g,"\\'")}','${p.replace(/'/g,"\\'")}',this.checked,this)"
+            onclick="event.stopPropagation()"/>
+          <span class="proj-name ${isDone?'checked-name':''} ${isElective?'elective-proj':''}">${p}</span>
+        </label>`;
+      }).join('') : `<p style="padding:.5rem;color:var(--muted);font-size:.8rem">No project data.</p>`;
+
+      const elNote = status !== 'complete' && lvl?.projects.some(p=>p.includes('Elective'))
+        ? `<div class="elective-note">💡 Elective options: Connect with Storytelling, Using Presentation Software, Inspire Your Audience, Persuasive Speaking, Focus on the Positive, and more.</div>` : '';
+
+      const nextBox = status === 'current' && lvl
+        ? (() => {
+            const next = lvl.projects.filter(p=>!p.includes('Completion')&&!p.includes('Elective')&&!isProjectDone(m.name,p))[0]
+                      || lvl.projects.filter(p=>!isProjectDone(m.name,p))[0];
+            return next ? `<div class="next-step-box" style="--pc:${pc}">
+              <div class="next-step-label">🎯 Next Step</div>
+              <div class="next-step-text">${next}</div>
+            </div>` : `<div class="next-step-box" style="--pc:#16a34a">
+              <div class="next-step-label">🎉 Almost there!</div>
+              <div class="next-step-text">Mark the Level Completion above!</div>
+            </div>`;
+          })() : '';
+
+      return `<div class="ml-level-row ml-${status}" onclick="toggleMlLevel(${n})">
+        <div class="ml-level-header">
+          <div class="ml-level-emoji">${emoji}</div>
+          <div class="ml-level-info">
+            <div class="ml-level-title">Level ${n} — ${title}</div>
+            <div class="ml-level-sub">${total} project${total!==1?'s':''}</div>
+          </div>
+          <div class="ml-bar-area">
+            <div class="ml-bar-wrap">
+              <div class="ml-bar-fill ${fillClass}" id="mlbar-${n}"
+                style="width:0%;${barColorStyle}" data-pct="${barPct}"></div>
+            </div>
+          </div>
+          <div class="ml-count" id="mlcount-${n}" style="color:${countColor}">${doneCount}<span style="font-weight:400;color:var(--muted)">/${total}</span></div>
+          ${pillHTML}
+          <span class="ml-chevron" id="ml-chev-${n}">${isOpen?'▴':'▾'}</span>
+        </div>
+        <div class="ml-projects ${isOpen?'open':''}" id="mlp-${n}">
+          ${projectsHTML}${elNote}${nextBox}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  scroll.innerHTML = `
+    <div class="modal-header" style="background:linear-gradient(135deg,${pc} 0%,${pcd} 100%)">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-member-name">${m.name}</div>
+      <div class="modal-pathway">${pathwayLabel}</div>
+      ${roleHTML}${mentorHTML}
+    </div>
+    <div class="modal-stats">
+      <div class="modal-stat">
+        <div class="ms-val" style="color:${pc}">${done}<span style="font-size:1rem;color:#94a3b8"> / 5</span></div>
+        <div class="ms-lbl">Levels Done</div>
+      </div>
+      <div class="modal-stat">
+        <div class="ms-val" style="color:${pc}${m.not_enrolled?';font-size:1.2rem':''}">
+          ${m.is_dtm ? '🏆' : m.not_enrolled ? 'N/A' : 'Level '+currentLvl}</div>
+        <div class="ms-lbl">Currently On</div>
+      </div>
+      <div class="modal-stat">
+        <div class="ms-val" style="color:${pc}">${pct}%</div>
+        <div class="ms-lbl">Pathway Done</div>
+      </div>
+    </div>
+    <div class="ml-bar-section" style="--pc:${pc}">
+      <div class="section-title" style="margin-bottom:1.25rem">Level Journey 🗺️
+        <span style="font-size:.65rem;font-weight:400;color:#94a3b8;text-transform:none;letter-spacing:0;margin-left:.5rem">
+          ☑ tap a level to see projects &amp; check them off
+        </span>
+      </div>
+      ${levelsHTML}
+    </div>`;
+
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  if(detailChart){ detailChart.destroy(); detailChart=null; }
+
+  // Animate bars in
+  setTimeout(()=>{
+    document.querySelectorAll('.ml-bar-fill[data-pct]').forEach(el=>{
+      el.style.width = el.dataset.pct + '%';
+    });
+  }, 60);
+}
+
+function toggleMlLevel(n){
+  const proj = document.getElementById('mlp-'+n);
+  const chev = document.getElementById('ml-chev-'+n);
+  if(!proj) return;
+  const open = proj.classList.toggle('open');
+  if(chev) chev.textContent = open ? '▴' : '▾';
+}
+
+function toggleProject(memberName, projectName, done, cb){
+  setProjectDone(memberName, projectName, done);
+  const label = cb.closest('label');
+  const nameEl = label && label.querySelector('.proj-name');
+  if(nameEl){ done ? nameEl.classList.add('checked-name') : nameEl.classList.remove('checked-name'); }
+
+  // Update the bar fill for this level
+  const projSection = cb.closest('.ml-projects');
+  if(projSection){
+    const n = projSection.id.replace('mlp-','');
+    const allCbs = projSection.querySelectorAll('.proj-cb');
+    const checkedCount = [...allCbs].filter(c=>c.checked).length;
+    const pct = Math.round((checkedCount/allCbs.length)*100);
+    const bar = document.getElementById('mlbar-'+n);
+    const cnt = document.getElementById('mlcount-'+n);
+    if(bar){ bar.dataset.pct = pct; bar.style.width = pct+'%'; }
+    if(cnt){ const color = cnt.style.color; cnt.innerHTML = `${checkedCount}<span style="font-weight:400;color:var(--muted)">/${allCbs.length}</span>`; cnt.style.color = color; }
+  }
+  renderGroups(visibleMembers());
+}
 
   // Roadmap progress bar width
   const progressPct = m.is_dtm ? 100 : (done === 0 ? 4 : Math.min(((done - 0.5) / 4) * 100, 100));

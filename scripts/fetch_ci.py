@@ -129,14 +129,18 @@ for i, mem in enumerate(members_basic):
     try:
         link = driver.find_element(By.CSS_SELECTOR, f"a[onclick*='{guid}']")
         driver.execute_script("arguments[0].click();", link)
-        try:
-            wait.until(lambda d, g=guid[:8]: g in
-                       d.find_element(By.ID, "information").get_attribute("innerHTML") or
-                       len(d.find_element(By.ID, "information").get_attribute("innerText").strip()) > 60)
-        except Exception:
-            time.sleep(4)
-        raw = driver.find_element(By.ID, "information").get_attribute("innerText") or ""
-        modal_text = re.sub(r'\s+', ' ', raw).strip()
+        time.sleep(4)
+        # Try multiple selectors for the modal body
+        modal_text = ""
+        for sel in ["#information", ".modal-body", ".member-modal-body", "[class*='modal'] [class*='body']"]:
+            try:
+                el = driver.find_element(By.CSS_SELECTOR, sel)
+                raw = el.get_attribute("innerText") or ""
+                if len(raw.strip()) > 30:
+                    modal_text = re.sub(r'\s+', ' ', raw).strip()
+                    break
+            except Exception:
+                continue
         since_m = re.search(r'Member since\s+([\w]+ \d+, \d{4})', modal_text)
         member_since = since_m.group(1) if since_m else ""
         print(f"→ since {member_since or '?'}", flush=True)

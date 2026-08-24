@@ -36,12 +36,15 @@ jobs:
           TM_PASSWORD: ${{ secrets.TM_PASSWORD }}
         run: |
           cd scripts
-          python fetch_ci.py
+          python fetch_ci.py || { echo "⚠️ Scrape failed — keeping existing data.js"; exit 0; }
 
       - name: Generate data.js
         run: |
-          cd scripts
-          python generate_ci.py
+          if [ -f scripts/member_modals.json ]; then
+            cd scripts && python generate_ci.py
+          else
+            echo "⚠️ No member_modals.json — skipping data.js generation (old data preserved)"
+          fi
 
       - name: Commit and push if data changed
         run: |

@@ -16,11 +16,9 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -49,7 +47,7 @@ def make_driver():
     opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--disable-gpu")
     opts.add_argument("--window-size=1920,1080")
-    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opts)
+    return webdriver.Chrome(options=opts)
 
 def force_close_modal(driver):
     driver.execute_script("""

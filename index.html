@@ -592,9 +592,10 @@ function renderGroupHTML(group){
     if(m.is_dtm || m.completed_levels >= 5) return 1000;
     const cur = m.levels?.find(l=>l.status==='current');
     if(!cur) return 0;
-    const fu = cur.projects.findIndex(p=>!isProjectDone(m.name,p));
-    const d = fu === -1 ? cur.projects.length : fu;
-    return cur.projects.length > 0 ? d / cur.projects.length : 0;
+    const speechProjs = cur.projects.filter(p => !p.startsWith('Level ') || !p.includes('Completion'));
+    const fu = speechProjs.findIndex(p=>!isProjectDone(m.name,p));
+    const d = fu === -1 ? speechProjs.length : fu;
+    return speechProjs.length > 0 ? d / speechProjs.length : 0;
   };
   const sorted = [...group.members].sort((a,b) => getScore(b) - getScore(a));
 
@@ -627,9 +628,11 @@ function memberRowHTML(m, origIdx, rank){
   } else if(!m.not_enrolled && m.levels){
     const curLvl = m.levels.find(l=>l.status==='current');
     if(curLvl){
-      const firstUndone = curLvl.projects.findIndex(p=>!isProjectDone(m.name,p));
-      done = firstUndone === -1 ? curLvl.projects.length : firstUndone;
-      total = curLvl.projects.length;
+      // Exclude "Level X Completion" from bar count — it's a certification step, not a speech
+      const speechProjs = curLvl.projects.filter(p => !p.startsWith('Level ') || !p.includes('Completion'));
+      const firstUndone = speechProjs.findIndex(p=>!isProjectDone(m.name,p));
+      done = firstUndone === -1 ? speechProjs.length : firstUndone;
+      total = speechProjs.length;
       barPct = total > 0 ? Math.round((done/total)*100) : 0;
     }
   }

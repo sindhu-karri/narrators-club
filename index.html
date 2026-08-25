@@ -741,19 +741,16 @@ function openModal(idx){
 
       const barColorStyle = fillClass ? '' : `background:linear-gradient(90deg,${pc},color-mix(in srgb,${pc} 65%,white))`;
 
-      // Project checklist rows
+      // Project rows — read-only, data from Base Camp only
       const projectsHTML = lvl ? lvl.projects.map(p=>{
         const isElective = p.includes('Elective');
         const isLvlDone = status === 'complete';
         const isDone = isLvlDone || isProjectDone(m.name, p);
-        const cbId = `cb_${m.name.replace(/\s+/g,'_')}_${p.replace(/[^a-zA-Z0-9_]/g,'_')}`;
-        return `<label class="project-row" for="${cbId}">
-          <input type="checkbox" class="proj-cb" id="${cbId}" style="--pc:${pc}"
-            ${isDone?'checked':''} ${isLvlDone?'disabled':''}
-            onchange="toggleProject('${m.name.replace(/'/g,"\\'")}','${p.replace(/'/g,"\\'")}',this.checked,this)"
-            onclick="event.stopPropagation()"/>
+        const icon = isDone ? '✅' : (isElective ? '🔵' : '⬜');
+        return `<div class="project-row ${isDone?'proj-done':''}">
+          <span class="proj-icon">${icon}</span>
           <span class="proj-name ${isDone?'checked-name':''} ${isElective?'elective-proj':''}">${p}</span>
-        </label>`;
+        </div>`;
       }).join('') : `<p style="padding:.5rem;color:var(--muted);font-size:.8rem">No project data.</p>`;
 
       const elNote = status !== 'complete' && lvl?.projects.some(p=>p.includes('Elective'))

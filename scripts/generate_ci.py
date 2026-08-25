@@ -54,12 +54,13 @@ with open(_os_path.path.join(SCRIPT_DIR, "member_modals.json"), encoding="utf-8"
     all_members = json.load(f)
 
 EXCOM_INFO = {
-    "Lakshmi Satya Sai Sindhu Karri":  {"role": "Club President",       "pathway": "Presentation Mastery", "completed_levels": 0},
-    "Mahabir Singh Bisht":             {"role": "Club Secretary",        "pathway": "Presentation Mastery", "completed_levels": 0},
-    "Nemichandra B N":                 {"role": "VP Membership",         "pathway": "Dynamic Leadership",   "completed_levels": 0},
-    "Sahil Aggarwal":                  {"role": "Club Treasurer",        "pathway": None,                   "completed_levels": -1},
-    "Sheetal Avula":                   {"role": "VP Education",          "pathway": "Presentation Mastery", "completed_levels": 0},
-    "Yamuna J K":                      {"role": "VP PR",                 "pathway": "Presentation Mastery", "completed_levels": 0},
+    "Lakshmi Satya Sai Sindhu Karri":  {"role": "Club President",         "pathway": "Presentation Mastery", "completed_levels": 0},
+    "Mahabir Singh Bisht":             {"role": "Club Secretary",          "pathway": "Presentation Mastery", "completed_levels": 0},
+    "Akash Yadav":                     {"role": "VP Membership",           "pathway": "Engaging Humor",       "completed_levels": 0},
+    "Ananda Ragavan":                  {"role": "Club Treasurer",          "pathway": "Presentation Mastery", "completed_levels": 0},
+    "Sheetal Avula":                   {"role": "VP Education",            "pathway": "Presentation Mastery", "completed_levels": 0},
+    "Mohammed Salick Shafi":           {"role": "VP PR",                   "pathway": "Presentation Mastery", "completed_levels": 0},
+    "Yamuna J K":                      {"role": "Sergeant at Arms",        "pathway": "Presentation Mastery", "completed_levels": 0},
 }
 
 LEVEL_ABBR = {
@@ -67,7 +68,8 @@ LEVEL_ABBR = {
     "TC": "Team Collaboration",     "IP": "Innovative Planning",
     "DL": "Dynamic Leadership",     "PM": "Presentation Mastery",
     "EH": "Engaging Humor",         "MS": "Motivational Strategies",
-    "PI": "Persuasive Influence",
+    "PI": "Persuasive Influence",   "SC": "Story Collection",
+    "VC": "Visionary Communication","SR": "Strategic Relationships",
 }
 
 PATHWAY_COLORS = {
@@ -80,6 +82,9 @@ PATHWAY_COLORS = {
     "Leadership Development":"#b45309",
     "Motivational Strategies":"#7c3aed",
     "Persuasive Influence":  "#be185d",
+    "Story Collection":      "#0f766e",
+    "Visionary Communication":"#9333ea",
+    "Strategic Relationships":"#0369a1",
 }
 
 PATHWAY_PROJECTS = {
@@ -132,6 +137,27 @@ PATHWAY_PROJECTS = {
         4: {"title": "Building Skills",           "required": ["The Power of Humor in an Impromptu Speech"], "elective_count": 1},
         5: {"title": "Demonstrating Expertise",   "required": ["Deliver Your Message with Humor"], "elective_count": 1},
     },
+    "Persuasive Influence": {
+        1: {"title": "Mastering Fundamentals",    "required": ["Ice Breaker","Writing a Speech with Purpose","Introduction to Vocal Variety and Body Language","Evaluation and Feedback","Researching and Presenting"], "elective_count": 0},
+        2: {"title": "Learning Your Style",       "required": ["Know Your Sense of Humor","Connect with Your Audience","Introduction to Toastmasters Mentoring"], "elective_count": 0},
+        3: {"title": "Increasing Knowledge",      "required": ["Inspire Your Audience"], "elective_count": 1},
+        4: {"title": "Building Skills",           "required": ["Building a Social Media Presence"], "elective_count": 1},
+        5: {"title": "Demonstrating Expertise",   "required": ["Ethical Leadership"], "elective_count": 1},
+    },
+    "Story Collection": {
+        1: {"title": "Mastering Fundamentals",    "required": ["Ice Breaker","Writing a Speech with Purpose","Introduction to Vocal Variety and Body Language","Evaluation and Feedback","Researching and Presenting"], "elective_count": 0},
+        2: {"title": "Learning Your Style",       "required": ["Know Your Sense of Humor","Connect with Your Audience","Introduction to Toastmasters Mentoring"], "elective_count": 0},
+        3: {"title": "Increasing Knowledge",      "required": ["Connect With Storytelling"], "elective_count": 1},
+        4: {"title": "Building Skills",           "required": ["Prepare to Speak Professionally"], "elective_count": 1},
+        5: {"title": "Demonstrating Expertise",   "required": ["Focus on the Positive"], "elective_count": 1},
+    },
+    "Visionary Communication": {
+        1: {"title": "Mastering Fundamentals",    "required": ["Ice Breaker","Writing a Speech with Purpose","Introduction to Vocal Variety and Body Language","Evaluation and Feedback"], "elective_count": 0},
+        2: {"title": "Learning Your Style",       "required": ["Understanding Your Communication Style","Introduction to Toastmasters Mentoring"], "elective_count": 0},
+        3: {"title": "Increasing Knowledge",      "required": ["Using Presentation Software"], "elective_count": 1},
+        4: {"title": "Building Skills",           "required": ["Managing a Difficult Audience"], "elective_count": 1},
+        5: {"title": "Demonstrating Expertise",   "required": ["Prepare to Speak Professionally"], "elective_count": 1},
+    },
 }
 
 def decode_level_code(code):
@@ -181,10 +207,9 @@ def pay_status_key(m):
         return 1
     return 2
 
-# Active course overrides (TC5/DL5 complete → new pathway)
+# Active course overrides — only needed when portal level_code is ambiguous
 ACTIVE_COURSE_OVERRIDES = {
-    "Akash Yadav":  ("Engaging Humor", 0),
-    "Roopa V. G":   ("Engaging Humor", 4),  # Education awards show EH4
+    "Roopa V. G":   ("Dynamic Leadership", 4),  # Portal shows DL5
 }
 
 club_data_members = []

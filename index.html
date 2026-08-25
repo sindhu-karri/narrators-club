@@ -632,13 +632,17 @@ function memberRowHTML(m, origIdx, rank){
       // Denominator = speech projects only (exclude "Level X Completion" cert step)
       const speechProjs = curLvl.projects.filter(p => !p.startsWith('Level ') || !p.includes('Completion'));
       total = speechProjs.length;
-      // Use BCM count (authoritative) — cap at speech count so we never show "done > total"
+      const bcmTotal = curLvl.bcm_total ?? null;
+      // Use BCM total (includes Level Completion step) as denominator when available
+      const displayDenom = (bcmTotal != null && bcmTotal > 0) ? bcmTotal : total;
+      // Use BCM count (authoritative)
       if(curLvl.bcm_done != null && curLvl.bcm_done >= 0){
-        done = Math.min(curLvl.bcm_done, total);
+        done = Math.min(curLvl.bcm_done, displayDenom);
       } else {
         const firstUndone = speechProjs.findIndex(p=>!isProjectDone(m.name,p));
         done = firstUndone === -1 ? total : firstUndone;
       }
+      total = displayDenom;
       barPct = total > 0 ? Math.round((done/total)*100) : 0;
     }
   }
@@ -734,19 +738,21 @@ function openModal(idx){
       const isOpen = status === 'current';
 
       const bcmDone  = lvl?.bcm_done  ?? null;
+      const bcmTotal = lvl?.bcm_total ?? null;
+      // Denominator: use BCM total (includes Level Completion step) when available, else speechCount
+      const displayTotal = (bcmTotal != null && bcmTotal > 0) ? bcmTotal : speechCount;
       let doneCount, barPct, fillClass, countColor, pillHTML;
       if(status === 'complete'){
-        doneCount = speechCount; barPct = 100; fillClass = 'ml-done'; countColor = '#15803d';
+        doneCount = displayTotal; barPct = 100; fillClass = 'ml-done'; countColor = '#15803d';
         pillHTML = `<span class="ml-status-pill done">✅ Done</span>`;
       } else if(status === 'current'){
-        // Use BCM speech count (capped at speechCount to avoid showing done > total)
         if(bcmDone !== null && bcmDone >= 0){
-          doneCount = Math.min(bcmDone, speechCount);
-          barPct = speechCount > 0 ? Math.round((doneCount / speechCount) * 100) : 0;
+          doneCount = Math.min(bcmDone, displayTotal);
+          barPct = displayTotal > 0 ? Math.round((doneCount / displayTotal) * 100) : 0;
         } else {
           const fu = allProjs.findIndex(p=>!isProjectDone(m.name,p));
           doneCount = fu === -1 ? speechCount : Math.min(fu, speechCount);
-          barPct = speechCount > 0 ? Math.round((doneCount/speechCount)*100) : 0;
+          barPct = displayTotal > 0 ? Math.round((doneCount/displayTotal)*100) : 0;
         }
         fillClass = ''; countColor = pc;
         pillHTML = `<span class="ml-status-pill current">🔥 In Progress</span>`;
@@ -754,8 +760,6 @@ function openModal(idx){
         doneCount = 0; barPct = 0; fillClass = 'ml-locked'; countColor = '#94a3b8';
         pillHTML = `<span class="ml-status-pill locked">🔒 Locked</span>`;
       }
-
-      const displayTotal = speechCount;
       const barColorStyle = fillClass ? '' : `background:linear-gradient(90deg,${pc},color-mix(in srgb,${pc} 65%,white))`;
 
       // Project rows — read-only, data from Base Camp only
@@ -926,14 +930,14 @@ function excomPips(m, pipClass, pcColor){
   const curLvl = m.levels.find(l=>l.status==='current');
   if(!curLvl) return {html:'', label:''};
   const speechProjs = curLvl.projects.filter(p => !p.startsWith('Level ') || !p.includes('Completion'));
-  const total = speechProjs.length;
+  const total = (curLvl.bcm_total != null && curLvl.bcm_total > 0) ? curLvl.bcm_total : speechProjs.length;
   const done  = curLvl.bcm_done != null ? Math.min(curLvl.bcm_done, total) : 0;
   const html = speechProjs.map((p, i) => {
     const isDone = i < done;
     const cls = isDone ? 'done' : (i === done ? 'next' : 'todo');
     return `<div class="${pipClass} ${cls}" style="--pc:${pcColor}" title="${p}"></div>`;
   }).join('');
-  return {html, label:`${done} of ${total} speeches in Level ${m.completed_levels+1}`};
+  return {html, label:`${done} of ${total} steps in Level ${m.completed_levels+1}`};
 }
 
 function payBadgeHTML(payNorm){

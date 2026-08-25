@@ -724,14 +724,22 @@ function openModal(idx){
       const title = lvlTitles[i] || `Level ${n}`;
       const isOpen = status === 'current';
 
+      const bcmDone  = lvl?.bcm_done  ?? null;
+      const bcmTotal = lvl?.bcm_total ?? null;
       let doneCount, barPct, fillClass, countColor, pillHTML;
       if(status === 'complete'){
         doneCount = total; barPct = 100; fillClass = 'ml-done'; countColor = '#15803d';
         pillHTML = `<span class="ml-status-pill done">✅ Done</span>`;
       } else if(status === 'current'){
-        const fu = lvl.projects.findIndex(p=>!isProjectDone(m.name,p));
-        doneCount = fu === -1 ? total : fu;
-        barPct = total > 0 ? Math.round((doneCount/total)*100) : 0;
+        // Prefer BCM counts (speeches actually done) over checkbox state
+        if(bcmDone !== null && bcmTotal !== null && bcmTotal > 0){
+          doneCount = bcmDone;
+          barPct = Math.round((bcmDone / bcmTotal) * 100);
+        } else {
+          const fu = lvl.projects.findIndex(p=>!isProjectDone(m.name,p));
+          doneCount = fu === -1 ? total : fu;
+          barPct = total > 0 ? Math.round((doneCount/total)*100) : 0;
+        }
         fillClass = ''; countColor = pc;
         pillHTML = `<span class="ml-status-pill current">🔥 In Progress</span>`;
       } else {
@@ -739,6 +747,7 @@ function openModal(idx){
         pillHTML = `<span class="ml-status-pill locked">🔒 Locked</span>`;
       }
 
+      const displayTotal = (status === 'current' && bcmTotal !== null && bcmTotal > 0) ? bcmTotal : total;
       const barColorStyle = fillClass ? '' : `background:linear-gradient(90deg,${pc},color-mix(in srgb,${pc} 65%,white))`;
 
       // Project rows — read-only, data from Base Camp only
@@ -782,7 +791,7 @@ function openModal(idx){
                 style="width:0%;${barColorStyle}" data-pct="${barPct}"></div>
             </div>
           </div>
-          <div class="ml-count" id="mlcount-${n}" style="color:${countColor}">${doneCount}<span style="font-weight:400;color:var(--muted)">/${total}</span></div>
+          <div class="ml-count" id="mlcount-${n}" style="color:${countColor}">${doneCount}<span style="font-weight:400;color:var(--muted)">/${displayTotal}</span></div>
           ${pillHTML}
           <span class="ml-chevron" id="ml-chev-${n}">${isOpen?'▴':'▾'}</span>
         </div>
@@ -816,11 +825,7 @@ function openModal(idx){
       </div>
     </div>
     <div class="ml-bar-section" style="--pc:${pc}">
-      <div class="section-title" style="margin-bottom:1.25rem">Level Journey 🗺️
-        <span style="font-size:.65rem;font-weight:400;color:#94a3b8;text-transform:none;letter-spacing:0;margin-left:.5rem">
-          ☑ tap a level to see projects &amp; check them off
-        </span>
-      </div>
+      <div class="section-title" style="margin-bottom:1.25rem">Level Journey 🗺️</div>
       ${levelsHTML}
     </div>`;
 
@@ -912,14 +917,18 @@ function excomPips(m, pipClass, pcColor){
   if(!m.pathway || !m.levels) return {html:'', label:''};
   const curLvl = m.levels.find(l=>l.status==='current');
   if(!curLvl) return {html:'', label:''};
-  const firstUndone = curLvl.projects.findIndex(p=>!isProjectDone(m.name,p));
-  const done = firstUndone === -1 ? curLvl.projects.length : firstUndone;
-  const html = curLvl.projects.map((p,i)=>{
-    const isDone = isProjectDone(m.name,p);
-    const cls = isDone?'done':(i===firstUndone?'next':'todo');
+  // Use BCM counts when available
+  const bcmDone  = curLvl.bcm_done  ?? null;
+  const bcmTotal = curLvl.bcm_total ?? null;
+  const useBcm   = bcmDone !== null && bcmTotal !== null;
+  const done     = useBcm ? bcmDone : curLvl.projects.findIndex(p=>!isProjectDone(m.name,p)) === -1 ? curLvl.projects.length : curLvl.projects.findIndex(p=>!isProjectDone(m.name,p));
+  const total    = useBcm ? bcmTotal : curLvl.projects.length;
+  const html = curLvl.projects.slice(0, total).map((p,i)=>{
+    const isDone = useBcm ? (i < bcmDone) : isProjectDone(m.name,p);
+    const cls = isDone?'done':(i===done?'next':'todo');
     return `<div class="${pipClass} ${cls}" style="--pc:${pcColor}" title="${p}"></div>`;
   }).join('');
-  return {html, label:`${done} of ${curLvl.projects.length} projects in Level ${m.completed_levels+1}`};
+  return {html, label:`${done} of ${total} projects in Level ${m.completed_levels+1}`};
 }
 
 function payBadgeHTML(payNorm){
@@ -990,7 +999,7 @@ function excomOfficerCard(m){
       </div>
       ${pipsHTML
         ? `<div class="eco-pips" style="--pc:${pc}">${pipsHTML}
-           <span style="font-size:.67rem;color:var(--muted);margin-left:.2rem">${pipLabel.split(' of ')[0]}/${m.levels?.find(l=>l.status==='current')?.projects.length||'?'}</span>
+           <span style="font-size:.67rem;color:var(--muted);margin-left:.2rem">${pipLabel.split(' of ')[0]}/${pipLabel.split(' of ')[1]?.split(' ')[0]||'?'}</span>
            </div>`
         : ''}
       <div class="eco-footer">

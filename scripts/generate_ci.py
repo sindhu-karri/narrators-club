@@ -23,30 +23,16 @@ for _name, _projs in _overrides.get("manual_completions", {}).items():
     MANUAL_PROJECT_COMPLETION[_name] = dict(_projs)
 print(f"Manual completions loaded for {len(MANUAL_PROJECT_COMPLETION)} members: {list(MANUAL_PROJECT_COMPLETION.keys())}")
 
-# ── AUTO-MERGE: member_courses.json (from fetch_ci.py) ──────────────────────
-# Manual overrides take precedence over API data.
+# Load BCM progress data (pathway, completed_levels, progression counts from BCM API)
 _courses_file = _os_path.path.join(SCRIPT_DIR, "member_courses.json")
+_bcm_data = {}
 if os.path.exists(_courses_file):
     try:
         with open(_courses_file, encoding="utf-8") as _f:
-            _courses_data = json.load(_f)
-        with open(_os_path.path.join(SCRIPT_DIR, "member_modals.json"), encoding="utf-8") as _mf:
-            _pay_status_map = {m["name"]: m.get("pay_status", "") for m in json.load(_mf)}
-        _api_merged = 0
-        for _name, _info in _courses_data.items():
-            if _pay_status_map.get(_name) == "Membership Pending":
-                continue
-            _api_completion = {p: v for p, v in _info.get("completion", {}).items() if v}
-            if _api_completion:
-                if _name not in MANUAL_PROJECT_COMPLETION:
-                    MANUAL_PROJECT_COMPLETION[_name] = {}
-                for _proj, _done in _api_completion.items():
-                    if _proj not in MANUAL_PROJECT_COMPLETION[_name]:
-                        MANUAL_PROJECT_COMPLETION[_name][_proj] = _done
-                        _api_merged += 1
-        print(f"Merged API data from member_courses.json ({_api_merged} additions, manual overrides preserved)")
+            _bcm_data = json.load(_f)
+        print(f"Loaded BCM progress for {len(_bcm_data)} members")
     except Exception as _e:
-        print(f"Could not merge member_courses.json: {_e}")
+        print(f"Could not load member_courses.json: {_e}")
 else:
     print("No member_courses.json found")
 
@@ -207,9 +193,9 @@ def pay_status_key(m):
         return 1
     return 2
 
-# Active course overrides — only needed when portal level_code is ambiguous
+# Active course overrides — only needed when BCM data is absent/ambiguous
 ACTIVE_COURSE_OVERRIDES = {
-    "Roopa V. G":   ("Dynamic Leadership", 4),  # Portal shows DL5
+    # Empty — BCM progress API now handles all members directly
 }
 
 club_data_members = []
@@ -226,25 +212,30 @@ for m in sorted(all_members, key=lambda x: x.get("name", "")):
     is_new_member = m.get("is_new_member", False)
 
     # Determine pathway + completed levels
+    # Priority: EXCOM_INFO > BCM progress API > portal level_code > fallback
+    bcm = _bcm_data.get(name, {})
     if name in EXCOM_INFO:
         ex = EXCOM_INFO[name]
-        pathway = ex["pathway"]
-        completed = ex["completed_levels"]
         role = ex["role"]
+        # Use BCM data for pathway/level if available, else fall back to EXCOM_INFO
+        if bcm:
+            pathway   = bcm["pathway"]
+            completed = bcm["completed_levels"]
+        else:
+            pathway   = ex["pathway"]
+            completed = ex["completed_levels"]
     else:
         role = ""
         if name in ACTIVE_COURSE_OVERRIDES:
             pathway, completed = ACTIVE_COURSE_OVERRIDES[name]
+        elif bcm:
+            pathway   = bcm["pathway"]
+            completed = bcm["completed_levels"]
         else:
             pathway, completed = decode_level_code(level_code)
-            if pathway is None:
-                bc_path = _bc_pathways.get(name)
-                if bc_path and bc_path in PATHWAY_PROJECTS:
-                    pathway = bc_path
-                    completed = 0
-                elif m.get("pathways_status") == "Pathways Enrolled":
-                    pathway = "Enrolled (pathway TBD)"
-                    completed = 0
+            if pathway is None and m.get("pathways_status") == "Pathways Enrolled":
+                pathway   = "Enrolled (pathway TBD)"
+                completed = 0
 
     # Pay status normalisation
     if pay_status == "Paid Until":
@@ -260,6 +251,15 @@ for m in sorted(all_members, key=lambda x: x.get("name", "")):
     not_enrolled = (pathway is None)
 
     levels = build_levels(pathway, completed if completed is not None else -1)
+
+    # Annotate each level with BCM progress counts
+    if bcm:
+        for lvl in levels:
+            lk = f"Level {lvl['level']}"
+            ldata = bcm.get("progression", {}).get(lk, {})
+            lvl["bcm_done"]  = ldata.get("completed", 0)
+            lvl["bcm_total"] = ldata.get("total", 0)
+            lvl["bcm_approved"] = bool(ldata.get("approved", False))
 
     club_data_members.append({
         "name":             name,
@@ -330,4 +330,5 @@ paid   = sum(1 for m in membership_data if m['pay_norm'] == 'paid')
 unpaid = sum(1 for m in membership_data if m['pay_norm'] == 'unpaid')
 pending= sum(1 for m in membership_data if m['pay_norm'] == 'pending')
 print(f"  Paid: {paid}  |  Unpaid: {unpaid}  |  Pending: {pending}")
+
 

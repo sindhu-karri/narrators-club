@@ -770,11 +770,12 @@ function openModal(idx){
       }
       const barColorStyle = fillClass ? '' : `background:linear-gradient(90deg,${pc},color-mix(in srgb,${pc} 65%,white))`;
 
-      // Project rows — read-only, data from Base Camp only
-      const projectsHTML = lvl ? lvl.projects.map(p=>{
+      // Project rows — use BCM position to determine done (ignore localStorage)
+      const projectsHTML = lvl ? lvl.projects.map((p, idx) => {
         const isElective = p.includes('Elective');
         const isLvlDone = status === 'complete';
-        const isDone = isLvlDone || isProjectDone(m.name, p);
+        // For current level: mark done if index < bcm_done count; for complete levels: all done
+        const isDone = isLvlDone || (status === 'current' && bcmDone !== null ? idx < bcmDone : false);
         const icon = isDone ? '✅' : (isElective ? '🔵' : '⬜');
         return `<div class="project-row ${isDone?'proj-done':''}">
           <span class="proj-icon">${icon}</span>
@@ -787,14 +788,15 @@ function openModal(idx){
 
       const nextBox = status === 'current' && lvl
         ? (() => {
-            const next = lvl.projects.filter(p=>!p.includes('Completion')&&!p.includes('Elective')&&!isProjectDone(m.name,p))[0]
-                      || lvl.projects.filter(p=>!isProjectDone(m.name,p))[0];
+            // Next speech = first undone non-completion project based on BCM position
+            const speechList = lvl.projects.filter(p=>!p.includes('Completion')&&!p.includes('Elective'));
+            const next = bcmDone !== null ? speechList[bcmDone] || null : speechList[0] || null;
             return next ? `<div class="next-step-box" style="--pc:${pc}">
               <div class="next-step-label">🎯 Next Step</div>
               <div class="next-step-text">${next}</div>
             </div>` : `<div class="next-step-box" style="--pc:#16a34a">
               <div class="next-step-label">🎉 Almost there!</div>
-              <div class="next-step-text">Mark the Level Completion above!</div>
+              <div class="next-step-text">Submit Level Completion in Base Camp!</div>
             </div>`;
           })() : '';
 

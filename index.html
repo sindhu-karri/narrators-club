@@ -641,7 +641,7 @@ function renderGroupHTML(group){
     if(m.is_dtm || m.completed_levels >= 5) return 1000;
     const cur = m.levels?.find(l=>l.status==='current');
     if(!cur) return 0;
-    const speechProjs = cur.projects.filter(p => !p.startsWith('Level ') || !p.includes('Completion'));
+    const speechProjs = cur.projects.filter(p => !p.is_admin_step && !p.is_intro_block);
     const total = speechProjs.length;
     if(total === 0) return 0;
     const done = cur.bcm_done != null ? Math.min(cur.bcm_done, total) : 0;
@@ -1082,13 +1082,13 @@ function excomPips(m, pipClass, pcColor){
   if(!m.pathway || !m.levels) return {html:'', label:''};
   const curLvl = m.levels.find(l=>l.status==='current');
   if(!curLvl) return {html:'', label:''};
-  const speechProjs = curLvl.projects.filter(p => !p.startsWith('Level ') || !p.includes('Completion'));
+  const speechProjs = curLvl.projects.filter(p => !p.is_admin_step && !p.is_intro_block);
   const total = (curLvl.bcm_total != null && curLvl.bcm_total > 0) ? curLvl.bcm_total : speechProjs.length;
   const done  = curLvl.bcm_done != null ? Math.min(curLvl.bcm_done, total) : 0;
   const html = speechProjs.map((p, i) => {
     const isDone = i < done;
     const cls = isDone ? 'done' : (i === done ? 'next' : 'todo');
-    return `<div class="${pipClass} ${cls}" style="--pc:${pcColor}" title="${p}"></div>`;
+    return `<div class="${pipClass} ${cls}" style="--pc:${pcColor}" title="${p.project}"></div>`;
   }).join('');
   return {html, label:`${done} of ${total} steps in Level ${m.completed_levels+1}`};
 }

@@ -593,9 +593,10 @@ function renderGroupHTML(group){
     const cur = m.levels?.find(l=>l.status==='current');
     if(!cur) return 0;
     const speechProjs = cur.projects.filter(p => !p.startsWith('Level ') || !p.includes('Completion'));
-    const fu = speechProjs.findIndex(p=>!isProjectDone(m.name,p));
-    const d = fu === -1 ? speechProjs.length : fu;
-    return speechProjs.length > 0 ? d / speechProjs.length : 0;
+    const total = speechProjs.length;
+    if(total === 0) return 0;
+    const done = cur.bcm_done != null ? Math.min(cur.bcm_done, total) : 0;
+    return done / total;
   };
   const sorted = [...group.members].sort((a,b) => getScore(b) - getScore(a));
 
@@ -628,11 +629,16 @@ function memberRowHTML(m, origIdx, rank){
   } else if(!m.not_enrolled && m.levels){
     const curLvl = m.levels.find(l=>l.status==='current');
     if(curLvl){
-      // Exclude "Level X Completion" from bar count — it's a certification step, not a speech
+      // Denominator = speech projects only (exclude "Level X Completion" cert step)
       const speechProjs = curLvl.projects.filter(p => !p.startsWith('Level ') || !p.includes('Completion'));
-      const firstUndone = speechProjs.findIndex(p=>!isProjectDone(m.name,p));
-      done = firstUndone === -1 ? speechProjs.length : firstUndone;
       total = speechProjs.length;
+      // Use BCM count (authoritative) — cap at speech count so we never show "done > total"
+      if(curLvl.bcm_done != null && curLvl.bcm_done >= 0){
+        done = Math.min(curLvl.bcm_done, total);
+      } else {
+        const firstUndone = speechProjs.findIndex(p=>!isProjectDone(m.name,p));
+        done = firstUndone === -1 ? total : firstUndone;
+      }
       barPct = total > 0 ? Math.round((done/total)*100) : 0;
     }
   }
@@ -719,26 +725,28 @@ function openModal(idx){
       const n = i+1;
       const lvl = m.levels?.find(l=>l.level===n);
       const status = lvl?.status || (n <= done ? 'complete' : 'future');
-      const total = lvl?.projects.length || 3;
+      const allProjs = lvl?.projects || [];
+      // Speech count = exclude "Level X Completion" cert step (not a speech)
+      const speechCount = allProjs.filter(p => !p.startsWith('Level ') || !p.includes('Completion')).length || (allProjs.length || 3);
+      const total = allProjs.length || 3;
       const emoji = LVL_EMOJIS[i];
       const title = lvlTitles[i] || `Level ${n}`;
       const isOpen = status === 'current';
 
       const bcmDone  = lvl?.bcm_done  ?? null;
-      const bcmTotal = lvl?.bcm_total ?? null;
       let doneCount, barPct, fillClass, countColor, pillHTML;
       if(status === 'complete'){
-        doneCount = total; barPct = 100; fillClass = 'ml-done'; countColor = '#15803d';
+        doneCount = speechCount; barPct = 100; fillClass = 'ml-done'; countColor = '#15803d';
         pillHTML = `<span class="ml-status-pill done">✅ Done</span>`;
       } else if(status === 'current'){
-        // Prefer BCM counts (speeches actually done) over checkbox state
-        if(bcmDone !== null && bcmTotal !== null && bcmTotal > 0){
-          doneCount = bcmDone;
-          barPct = Math.round((bcmDone / bcmTotal) * 100);
+        // Use BCM speech count (capped at speechCount to avoid showing done > total)
+        if(bcmDone !== null && bcmDone >= 0){
+          doneCount = Math.min(bcmDone, speechCount);
+          barPct = speechCount > 0 ? Math.round((doneCount / speechCount) * 100) : 0;
         } else {
-          const fu = lvl.projects.findIndex(p=>!isProjectDone(m.name,p));
-          doneCount = fu === -1 ? total : fu;
-          barPct = total > 0 ? Math.round((doneCount/total)*100) : 0;
+          const fu = allProjs.findIndex(p=>!isProjectDone(m.name,p));
+          doneCount = fu === -1 ? speechCount : Math.min(fu, speechCount);
+          barPct = speechCount > 0 ? Math.round((doneCount/speechCount)*100) : 0;
         }
         fillClass = ''; countColor = pc;
         pillHTML = `<span class="ml-status-pill current">🔥 In Progress</span>`;
@@ -747,7 +755,7 @@ function openModal(idx){
         pillHTML = `<span class="ml-status-pill locked">🔒 Locked</span>`;
       }
 
-      const displayTotal = (status === 'current' && bcmTotal !== null && bcmTotal > 0) ? bcmTotal : total;
+      const displayTotal = speechCount;
       const barColorStyle = fillClass ? '' : `background:linear-gradient(90deg,${pc},color-mix(in srgb,${pc} 65%,white))`;
 
       // Project rows — read-only, data from Base Camp only
@@ -917,18 +925,15 @@ function excomPips(m, pipClass, pcColor){
   if(!m.pathway || !m.levels) return {html:'', label:''};
   const curLvl = m.levels.find(l=>l.status==='current');
   if(!curLvl) return {html:'', label:''};
-  // Use BCM counts when available
-  const bcmDone  = curLvl.bcm_done  ?? null;
-  const bcmTotal = curLvl.bcm_total ?? null;
-  const useBcm   = bcmDone !== null && bcmTotal !== null;
-  const done     = useBcm ? bcmDone : curLvl.projects.findIndex(p=>!isProjectDone(m.name,p)) === -1 ? curLvl.projects.length : curLvl.projects.findIndex(p=>!isProjectDone(m.name,p));
-  const total    = useBcm ? bcmTotal : curLvl.projects.length;
-  const html = curLvl.projects.slice(0, total).map((p,i)=>{
-    const isDone = useBcm ? (i < bcmDone) : isProjectDone(m.name,p);
-    const cls = isDone?'done':(i===done?'next':'todo');
+  const speechProjs = curLvl.projects.filter(p => !p.startsWith('Level ') || !p.includes('Completion'));
+  const total = speechProjs.length;
+  const done  = curLvl.bcm_done != null ? Math.min(curLvl.bcm_done, total) : 0;
+  const html = speechProjs.map((p, i) => {
+    const isDone = i < done;
+    const cls = isDone ? 'done' : (i === done ? 'next' : 'todo');
     return `<div class="${pipClass} ${cls}" style="--pc:${pcColor}" title="${p}"></div>`;
   }).join('');
-  return {html, label:`${done} of ${total} projects in Level ${m.completed_levels+1}`};
+  return {html, label:`${done} of ${total} speeches in Level ${m.completed_levels+1}`};
 }
 
 function payBadgeHTML(payNorm){

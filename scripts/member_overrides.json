@@ -1,5 +1,5 @@
 {
-  "_comment": "Club-specific metadata. Safe to commit — no GUIDs here. Update when mentors change or new members join.",
+  "_comment": "Club-specific metadata. Safe to commit — no GUIDs here. Update when mentors/members change.",
 
   "mentors": {
     "Yamuna J K":                      "Dumpa Venkata Sai Jagadeesh",
@@ -10,5 +10,14 @@
 
   "new_members": {
     "Sanjay Thillaivasan": { "joined": "April 27, 2026" }
+  },
+
+  "_comment_completions": "Manual project completions — use when Base Camp API can't fetch a member's data. These ALWAYS override API data. Project names must match exactly (see PATHWAY_PROJECTS in generate_website_data.py).",
+  "manual_completions": {
+    "Akash Yadav": {
+      "Ice Breaker":                 true,
+      "Evaluation and Feedback":     true,
+      "Researching and Presenting":  true
+    }
   }
 }

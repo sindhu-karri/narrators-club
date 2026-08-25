@@ -1,26 +1,30 @@
 # Generate website/data.js from scraped Toastmasters member data.
-# Run from: the toastmasters folder
+# Run from: the scripts folder inside website/
 #
-# ── MANUAL PROJECT COMPLETION OVERRIDES ─────────────────────────────────────
-# Add confirmed completions here that Base Camp hasn't recorded yet.
-# These ALWAYS win over API data (use for speech completions not yet in system).
-# Format: { "Member Full Name": { "Project Name": True, ... }, ... }
-# ────────────────────────────────────────────────────────────────────────────
-MANUAL_PROJECT_COMPLETION = {
-    "Lakshmi Satya Sai Sindhu Karri": {
-        "Writing a Speech with Purpose": True,  # user-confirmed; not yet in Base Camp
-    },
-    # Add more manually confirmed completions here, e.g.:
-    # "Sheetal Avula": {"Writing a Speech with Purpose": True},
-}
-
 import json, os
 from datetime import datetime
 import os as _os_path
 SCRIPT_DIR = _os_path.path.dirname(_os_path.path.abspath(__file__))
 
-# ── AUTO-MERGE: member_courses.json (from fetch_all_completions.py) ──────────
-# This file has live API data for all members. Manual overrides take precedence.
+# ── LOAD member_overrides.json ────────────────────────────────────────────────
+_overrides_file = _os_path.path.join(SCRIPT_DIR, "member_overrides.json")
+_overrides = {}
+if os.path.exists(_overrides_file):
+    with open(_overrides_file, encoding="utf-8") as _of:
+        _overrides = json.load(_of)
+    print(f"Loaded member_overrides.json")
+
+# ── MANUAL PROJECT COMPLETION OVERRIDES ─────────────────────────────────────
+# Loaded from member_overrides.json["manual_completions"] — edit that file.
+# These ALWAYS win over API data.
+# ────────────────────────────────────────────────────────────────────────────
+MANUAL_PROJECT_COMPLETION = {}
+for _name, _projs in _overrides.get("manual_completions", {}).items():
+    MANUAL_PROJECT_COMPLETION[_name] = dict(_projs)
+print(f"Manual completions loaded for {len(MANUAL_PROJECT_COMPLETION)} members: {list(MANUAL_PROJECT_COMPLETION.keys())}")
+
+# ── AUTO-MERGE: member_courses.json (from fetch_ci.py) ──────────────────────
+# Manual overrides take precedence over API data.
 _courses_file = _os_path.path.join(SCRIPT_DIR, "member_courses.json")
 if os.path.exists(_courses_file):
     try:
@@ -30,7 +34,6 @@ if os.path.exists(_courses_file):
             _pay_status_map = {m["name"]: m.get("pay_status", "") for m in json.load(_mf)}
         _api_merged = 0
         for _name, _info in _courses_data.items():
-            # Skip pending members — their Base Camp data may not reflect real club participation
             if _pay_status_map.get(_name) == "Membership Pending":
                 continue
             _api_completion = {p: v for p, v in _info.get("completion", {}).items() if v}
@@ -41,11 +44,11 @@ if os.path.exists(_courses_file):
                     if _proj not in MANUAL_PROJECT_COMPLETION[_name]:
                         MANUAL_PROJECT_COMPLETION[_name][_proj] = _done
                         _api_merged += 1
-        print(f"Merged API data from member_courses.json ({_api_merged} project completions added, pending members excluded)")
+        print(f"Merged API data from member_courses.json ({_api_merged} additions, manual overrides preserved)")
     except Exception as _e:
         print(f"Could not merge member_courses.json: {_e}")
 else:
-    print("No member_courses.json found — run fetch_all_completions.py to get live data")
+    print("No member_courses.json found")
 
 with open(_os_path.path.join(SCRIPT_DIR, "member_modals.json"), encoding="utf-8") as f:
     all_members = json.load(f)

@@ -218,6 +218,8 @@ select{padding:.6rem 1rem;border:1px solid var(--border);border-radius:10px;font
 .proj-name.checked-name{text-decoration:line-through;color:#94a3b8;}
 .proj-name.elective-proj{font-style:italic;color:#64748b;}
 .proj-speech-title{font-size:.75rem;color:#94a3b8;font-style:italic;margin-left:.3rem;}
+.proj-intro-row{background:var(--card);border-bottom:1px solid var(--border);opacity:.85;}
+.proj-intro-name{font-style:italic;font-size:.8rem;color:var(--muted);}
 .elective-note{font-size:.75rem;color:var(--muted);font-style:italic;margin-top:.5rem;padding:.5rem .75rem;background:#f8fafc;border-radius:8px;border-left:3px solid var(--amber);}
 .next-step-box{margin:1rem 0 0;padding:.75rem 1rem;background:color-mix(in srgb,var(--pc) 8%,white);border-radius:10px;border-left:4px solid var(--pc);}
 .next-step-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--pc);margin-bottom:.4rem;}
@@ -598,11 +600,11 @@ function renderGroups(members){
   members.forEach(m => {
     let key, label, sortNum;
     if(m.is_dtm){
-      key='dtm'; label='👑 Distinguished Toastmaster'; sortNum=1;
+      key='dtm'; label='Distinguished Toastmaster'; sortNum=1;
     } else if(m.completed_levels >= 5 && m.path_completion?.done){
-      key='complete'; label='🏆 Pathway Complete'; sortNum=2;
+      key='complete'; label='Pathway Complete'; sortNum=2;
     } else if(m.completed_levels >= 5){
-      key='pathcomp'; label='🎓 Path Completion'; sortNum=3;
+      key='pathcomp'; label='Path Completion'; sortNum=3;
     } else if(!m.not_enrolled && m.pathway){
       const lvl = m.completed_levels + 1;
       // Higher level = lower sortNum = shown first
@@ -710,8 +712,8 @@ function memberRowHTML(m, origIdx, rank){
 
   const mentorTag = m.mentor ? `<span class="mr-mentor-tag">👤 ${m.mentor}</span>` : '';
   const newTag = m.is_new_member ? `<span class="mr-new-tag">🆕</span>` : '';
-  const pathwayTag = m.pathway&&!m.not_enrolled&&!m.is_dtm
-    ? `<span class="mr-pathway-tag" style="color:${pc}">📚 ${m.pathway}</span>` : '';
+  const pathwayTag = !m.not_enrolled
+    ? `<span class="mr-pathway-tag" style="color:${pc}">📚 ${m.is_dtm ? 'DTM — All Pathways' : m.pathway}</span>` : '';
 
   const barColor = barClass ? '' : `background:linear-gradient(90deg,${pc},color-mix(in srgb,${pc} 70%,white))`;
   const countColor = barClass ? '#16a34a' : pc;
@@ -758,7 +760,7 @@ function buildTimelineHTML(m, pc){
   if(m.levels){
     m.levels.forEach(lvl => {
       lvl.projects.forEach(proj => {
-        if(proj.is_admin_step) return; // skip Level Completion cert step
+        if(proj.is_admin_step || proj.is_intro_block) return; // skip admin/intro items
         speeches.push({
           proj: proj.project,
           level: lvl.level,
@@ -876,26 +878,28 @@ function openModal(idx){
       }
       const barColorStyle = fillClass ? '' : `background:linear-gradient(90deg,${pc},color-mix(in srgb,${pc} 65%,white))`;
 
-      // Project rows — projects are now objects {project, done, speech_title, completion_date}
-      const projectsHTML = lvl ? lvl.projects.map((p) => {
-        const isElective = p.project.includes('Elective');
-        const isAdminStep = !!p.is_admin_step;
-        const isDone = p.done;
-        const icon = isDone ? '✅' : (isElective ? '🔵' : '⬜');
-        const speechMeta = p.speech_title
-          ? `<span class="proj-speech-title"> — "${p.speech_title}"</span>` : '';
-        return `<div class="project-row ${isDone?'proj-done':''} ${isAdminStep?'proj-admin-step':''}" onclick="showPortalToast()" style="cursor:pointer" title="Update speeches in Base Camp">
+      const proj = proj_item => {
+        const isIntro = !!proj_item.is_intro_block;
+        const isElective = proj_item.project.includes('Elective');
+        const isAdminStep = !!proj_item.is_admin_step;
+        const isDone = proj_item.done;
+        const icon = isIntro ? '📘' : (isDone ? '✅' : (isElective ? '🔵' : '⬜'));
+        const speechMeta = proj_item.speech_title && !isIntro
+          ? `<span class="proj-speech-title"> — "${proj_item.speech_title}"</span>` : '';
+        return `<div class="project-row ${isDone&&!isIntro?'proj-done':''} ${isIntro?'proj-intro-row':''} ${isAdminStep?'proj-admin-step':''}" onclick="showPortalToast()" style="cursor:pointer" title="Update speeches in Base Camp">
           <span class="proj-icon">${icon}</span>
-          <span class="proj-name ${isDone?'checked-name':''} ${isElective?'elective-proj':''}">${p.project}</span>${speechMeta}
+          <span class="proj-name ${isDone&&!isIntro?'checked-name':''} ${isIntro?'proj-intro-name':''} ${isElective?'elective-proj':''}">${proj_item.project}</span>${speechMeta}
         </div>`;
-      }).join('') : `<p style="padding:.5rem;color:var(--muted);font-size:.8rem">No project data.</p>`;
+      };
+      // Project rows — projects are objects {project, done, speech_title, completion_date, is_intro_block}
+      const projectsHTML = lvl ? lvl.projects.map(p => proj(p)).join('') : `<p style="padding:.5rem;color:var(--muted);font-size:.8rem">No project data.</p>`;
 
       const elNote = status !== 'complete' && lvl?.projects.some(p=>p.project.includes('Elective'))
         ? `<div class="elective-note">💡 Elective options: Connect with Storytelling, Using Presentation Software, Inspire Your Audience, Persuasive Speaking, Focus on the Positive, and more.</div>` : '';
 
       const nextBox = status === 'current' && lvl
         ? (() => {
-            const speechList = lvl.projects.filter(p=>!p.is_admin_step&&!p.project.includes('Elective'));
+            const speechList = lvl.projects.filter(p=>!p.is_admin_step&&!p.is_intro_block&&!p.project.includes('Elective'));
             const next = speechList.find(p=>!p.done);
             return next ? `<div class="next-step-box" style="--pc:${pc}">
               <div class="next-step-label">🎯 Next Step</div>
@@ -975,7 +979,7 @@ function openModal(idx){
       </div>
       <div class="modal-stat">
         <div class="ms-val" style="color:${pc}${m.not_enrolled?';font-size:1.2rem':''}">
-          ${m.is_dtm ? '🏆' : m.not_enrolled ? 'N/A' : 'Level '+currentLvl}</div>
+          ${m.is_dtm ? '👑' : m.not_enrolled ? 'N/A' : 'Level '+currentLvl}</div>
         <div class="ms-lbl">Currently On</div>
       </div>
       <div class="modal-stat">

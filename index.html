@@ -80,6 +80,45 @@ select{padding:.6rem 1rem;border:1px solid var(--border);border-radius:10px;font
 .mr-join-date{font-size:.62rem;color:var(--muted);margin-top:.1rem;}
 .modal-mentor-line{display:inline-flex;align-items:center;gap:.35rem;background:rgba(255,255,255,.15);padding:.2rem .75rem;border-radius:20px;font-size:.73rem;margin-top:.35rem;border:1px solid rgba(255,255,255,.25);}
 .ecp-mentor,.eco-mentor{font-size:.72rem;color:#065f46;background:#ecfdf5;padding:.2rem .6rem;border-radius:8px;margin-top:.4rem;display:inline-block;}
+
+/* ── MENTOR PAGE ─────────────────────────── */
+.mt-hero{background:linear-gradient(135deg,#065f46 0%,#047857 100%);color:#fff;padding:1.5rem 1.5rem 1rem;border-radius:12px;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;}
+.mt-hero-inner{display:flex;align-items:center;gap:.85rem;}
+.mt-hero-icon{font-size:2rem;}
+.mt-hero-title{font-size:1.25rem;font-weight:800;letter-spacing:-.01em;}
+.mt-hero-sub{font-size:.78rem;opacity:.8;margin-top:.15rem;}
+.mt-view-toggle{display:flex;gap:.5rem;}
+.mt-toggle-btn{padding:.45rem 1rem;border:1.5px solid rgba(255,255,255,.4);background:transparent;color:#fff;border-radius:20px;font-size:.78rem;cursor:pointer;font-weight:600;transition:all .2s;}
+.mt-toggle-btn.active{background:#fff;color:#065f46;}
+.mt-cards-wrap{display:flex;flex-direction:column;gap:1.25rem;}
+.mt-mentor-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.mt-mentor-header{display:flex;align-items:center;gap:.85rem;padding:1rem 1.25rem;background:var(--card);}
+.mt-mentor-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;color:#fff;flex-shrink:0;}
+.mt-mentor-name{font-size:1rem;font-weight:700;color:var(--text);}
+.mt-mentor-lvl{font-size:.75rem;color:var(--muted);margin-top:.1rem;}
+.mt-mentor-count{margin-left:auto;font-size:.72rem;font-weight:700;padding:.3rem .7rem;background:#ecfdf5;color:#065f46;border-radius:20px;}
+.mt-mentees-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.75rem;padding:.75rem 1.25rem 1.25rem;}
+.mt-mentee-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:.75rem;display:flex;gap:.65rem;cursor:pointer;transition:box-shadow .15s,transform .15s;}
+.mt-mentee-card:hover{box-shadow:0 3px 10px rgba(0,0,0,.1);transform:translateY(-1px);}
+.mt-mentee-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.78rem;color:#fff;flex-shrink:0;}
+.mt-mentee-name{font-size:.83rem;font-weight:700;color:var(--text);}
+.mt-mentee-path{font-size:.7rem;color:var(--muted);margin-top:.1rem;}
+.mt-progress-bar{height:5px;background:var(--border);border-radius:3px;margin-top:.4rem;overflow:hidden;}
+.mt-progress-fill{height:100%;border-radius:3px;transition:width .4s;}
+.mt-progress-label{font-size:.65rem;color:var(--muted);margin-top:.2rem;}
+.mt-section-title{font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:.6rem;padding:.5rem 0;border-bottom:1px solid var(--border);}
+.mt-unassigned-section{margin-top:1.5rem;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;}
+.mt-unassigned-tag{display:inline-block;padding:.25rem .6rem;background:#fef9c3;color:#854d0e;border-radius:6px;font-size:.75rem;margin:.2rem;font-weight:500;}
+.mt-pairs-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.mt-pairs-table{width:100%;border-collapse:collapse;font-size:.85rem;}
+.mt-pairs-table thead tr{background:var(--bg);}
+.mt-pairs-table th{padding:.75rem 1rem;text-align:left;font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid var(--border);}
+.mt-pairs-table td{padding:.75rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle;}
+.mt-pairs-table tbody tr:hover{background:var(--bg);cursor:pointer;}
+.mt-pairs-table tbody tr:last-child td{border-bottom:none;}
+.mt-pair-avatar{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#fff;margin-right:.5rem;vertical-align:middle;}
+.mt-lvl-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .5rem;background:var(--bg);border-radius:6px;font-size:.75rem;font-weight:600;border:1px solid var(--border);}
+.mt-external-badge{font-size:.65rem;padding:.15rem .4rem;background:#e0e7ff;color:#4338ca;border-radius:5px;font-weight:600;}
 .pay-mini{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .pay-mini.paid{background:#4ade80;}
 .pay-mini.unpaid{background:#f87171;}
@@ -409,6 +448,25 @@ tr:hover td{background:#fafafa;}
   <div id="excom-content"></div>
 </div>
 
+<!-- ───────── MENTORS TAB ───────── -->
+<div class="page" id="page-mentors">
+  <div class="mt-hero">
+    <div class="mt-hero-inner">
+      <div class="mt-hero-icon">🤝</div>
+      <div>
+        <div class="mt-hero-title">Mentor – Mentee</div>
+        <div class="mt-hero-sub">Narrator's Club · Guidance & Growth</div>
+      </div>
+    </div>
+    <div class="mt-view-toggle">
+      <button class="mt-toggle-btn active" id="mt-cards-btn" onclick="switchMentorView('cards')">🗂 Mentor Cards</button>
+      <button class="mt-toggle-btn" id="mt-pairs-btn" onclick="switchMentorView('pairs')">📋 Pairs List</button>
+    </div>
+  </div>
+  <div id="mt-view-cards" class="mt-cards-wrap"></div>
+  <div id="mt-view-pairs" class="mt-pairs-wrap" style="display:none"></div>
+</div>
+
 <!-- ───────── MEMBERSHIP TAB ───────── -->
 <div class="page" id="page-membership">
   <!-- Lock screen -->
@@ -539,6 +597,135 @@ function switchTab(t){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+t).classList.add('active');
   document.getElementById('tab-'+t+'-btn').classList.add('active');
+  if(t==='mentors') renderMentorsPage();
+}
+
+// ── MENTOR PAGE ───────────────────────────────────────────────────────────────
+const MENTOR_COLORS = ['#0d9488','#7c3aed','#b45309','#0369a1','#be185d','#166534','#c2410c','#1d4ed8'];
+let _mentorViewRendered = false;
+let _curMentorView = 'cards';
+
+function switchMentorView(v){
+  _curMentorView = v;
+  document.getElementById('mt-view-cards').style.display = v==='cards'?'':'none';
+  document.getElementById('mt-view-pairs').style.display = v==='pairs'?'':'none';
+  document.getElementById('mt-cards-btn').classList.toggle('active', v==='cards');
+  document.getElementById('mt-pairs-btn').classList.toggle('active', v==='pairs');
+}
+
+function renderMentorsPage(){
+  if(_mentorViewRendered) return;
+  _mentorViewRendered = true;
+  const members = (window.CLUB_DATA||{}).members||[];
+  // Build mentor→mentees map
+  const mentorMap = {};
+  const unassigned = [];
+  members.forEach(m=>{
+    const mentor = m.mentor||null;
+    const isPaid = m.membership_status==='Paid' || m.is_excom;
+    if(!isPaid) return; // only show paid members
+    if(mentor){
+      (mentorMap[mentor]||(mentorMap[mentor]=[])).push(m);
+    } else {
+      unassigned.push(m);
+    }
+  });
+
+  // Render cards view
+  const cardsEl = document.getElementById('mt-view-cards');
+  let cardsHTML = '';
+  let ci = 0;
+  Object.entries(mentorMap).forEach(([mentorName, mentees])=>{
+    const mentorMember = members.find(m=>m.name===mentorName);
+    const color = MENTOR_COLORS[ci++ % MENTOR_COLORS.length];
+    const initials = mentorName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const mentorLvl = mentorMember ? getMentorLvlLabel(mentorMember) : '';
+    const externalBadge = !mentorMember ? `<span class="mt-external-badge">External</span>` : '';
+    let menteesHTML = '';
+    mentees.forEach(mtee=>{
+      const {pct, label} = getMenteeProgress(mtee);
+      const mi = mtee.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const mc = MENTOR_COLORS[(members.indexOf(mtee)) % MENTOR_COLORS.length];
+      const pathShort = (mtee.path||'').replace(/ Mastery| Influence| Leadership/,'').split(' ').slice(0,3).join(' ');
+      menteesHTML += `<div class="mt-mentee-card" onclick="openModal('${mtee.name.replace(/'/,"\\\'")}')">
+        <div class="mt-mentee-avatar" style="background:${mc}">${mi}</div>
+        <div style="flex:1;min-width:0">
+          <div class="mt-mentee-name">${mtee.name}</div>
+          <div class="mt-mentee-path">${pathShort||'No path yet'}</div>
+          <div class="mt-progress-bar"><div class="mt-progress-fill" style="width:${pct}%;background:${color}"></div></div>
+          <div class="mt-progress-label">${label}</div>
+        </div>
+      </div>`;
+    });
+    cardsHTML += `<div class="mt-mentor-card">
+      <div class="mt-mentor-header">
+        <div class="mt-mentor-avatar" style="background:${color}">${initials}</div>
+        <div>
+          <div class="mt-mentor-name">${mentorName} ${externalBadge}</div>
+          <div class="mt-mentor-lvl">${mentorLvl}</div>
+        </div>
+        <div class="mt-mentor-count">${mentees.length} mentee${mentees.length!==1?'s':''}</div>
+      </div>
+      <div class="mt-mentees-grid">${menteesHTML}</div>
+    </div>`;
+  });
+  // Unassigned section
+  if(unassigned.length){
+    cardsHTML += `<div class="mt-unassigned-section">
+      <div class="mt-section-title">⚠️ Not yet assigned a mentor (${unassigned.length})</div>
+      <div>${unassigned.map(m=>`<span class="mt-unassigned-tag">${m.name}</span>`).join('')}</div>
+    </div>`;
+  }
+  cardsEl.innerHTML = cardsHTML;
+
+  // Render pairs table
+  const pairsEl = document.getElementById('mt-view-pairs');
+  let rows = '';
+  members.filter(m=>m.mentor).forEach((m,i)=>{
+    const color = MENTOR_COLORS[i % MENTOR_COLORS.length];
+    const mi = m.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const {pct,label} = getMenteeProgress(m);
+    const mentorMember = members.find(x=>x.name===m.mentor);
+    const mentorLvl = mentorMember ? getMentorLvlLabel(mentorMember) : '—';
+    const mmi = m.mentor.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const mc2 = MENTOR_COLORS[members.indexOf(mentorMember)%MENTOR_COLORS.length]||'#6b7280';
+    rows += `<tr onclick="openModal('${m.name.replace(/'/,"\\\'")}')">
+      <td><span class="mt-pair-avatar" style="background:${color}">${mi}</span>${m.name}</td>
+      <td>${(m.path||'').replace(/ Mastery| Influence| Leadership/,'').split(' ').slice(0,3).join(' ')||'—'}</td>
+      <td><span class="mt-lvl-badge">${label}</span></td>
+      <td><span class="mt-pair-avatar" style="background:${mc2}">${mmi}</span>${m.mentor}${!mentorMember?` <span class="mt-external-badge">External</span>`:''}</td>
+      <td>${mentorLvl}</td>
+    </tr>`;
+  });
+  pairsEl.innerHTML = `<table class="mt-pairs-table"><thead><tr>
+    <th>Mentee</th><th>Pathway</th><th>Progress</th><th>Mentor</th><th>Mentor Level</th>
+  </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function getMenteeProgress(m){
+  const levels = m.levels||[];
+  if(!levels.length) return {pct:0,label:'Not enrolled'};
+  const totalProj = levels.reduce((s,l)=>{
+    const ps=(l.projects||[]).filter(p=>!p.is_admin_step&&!p.is_intro_block);
+    return s+ps.length;
+  },0);
+  const doneProj = levels.reduce((s,l)=>{
+    const ps=(l.projects||[]).filter(p=>!p.is_admin_step&&!p.is_intro_block&&p.done);
+    return s+ps.length;
+  },0);
+  const pct = totalProj>0 ? Math.round(doneProj/totalProj*100) : 0;
+  const curLvl = levels.find(l=>l.status==='current')||levels[0];
+  const lvlLabel = curLvl ? `L${curLvl.level}` : '';
+  return {pct, label:`${doneProj}/${totalProj} projects · ${lvlLabel}`};
+}
+
+function getMentorLvlLabel(m){
+  if(!m||!m.levels) return '';
+  const cur = m.levels.find(l=>l.status==='current');
+  const last = m.levels.filter(l=>l.status==='complete').pop();
+  const ref = cur||last;
+  if(!ref) return m.path||'';
+  return `${m.path||'Unknown Path'} · Level ${ref.level}`;
 }
 
 let _toastTimer = null;

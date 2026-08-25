@@ -222,6 +222,19 @@ select{padding:.6rem 1rem;border:1px solid var(--border);border-radius:10px;font
 .next-step-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--pc);margin-bottom:.4rem;}
 .next-step-text{font-size:.83rem;color:var(--text);}
 
+/* ── SPEECH TIMELINE ── */
+.speech-timeline-section{padding:1.25rem 1.25rem 1.5rem;border-top:1px solid var(--border);}
+.stl-item{display:flex;gap:.75rem;align-items:flex-start;margin-bottom:1rem;position:relative;}
+.stl-item:not(:last-child)::before{content:'';position:absolute;left:11px;top:28px;bottom:-16px;width:2px;background:var(--border);}
+.stl-dot{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:white;margin-top:2px;}
+.stl-dot.done{background:var(--green);}
+.stl-dot.pending{background:#e2e8f0;color:#94a3b8;}
+.stl-info{flex:1;}
+.stl-proj{font-size:.85rem;font-weight:600;color:var(--text);}
+.stl-speech{font-size:.78rem;color:#7c3aed;font-style:italic;margin-top:.1rem;}
+.stl-date{font-size:.72rem;color:var(--muted);margin-top:.1rem;}
+.stl-gap{font-size:.68rem;color:#f59e0b;font-weight:600;margin-top:.15rem;}
+
 /* ── MEMBERSHIP VIEW ── */
 .lock-screen{max-width:380px;margin:6rem auto;text-align:center;background:white;border-radius:20px;padding:3rem 2rem;box-shadow:0 4px 24px rgba(0,0,0,.1);}
 .lock-icon{font-size:3rem;margin-bottom:1rem;}
@@ -429,6 +442,14 @@ tr:hover td{background:#fafafa;}
   </div>
 </div>
 
+<!-- ───────── TOAST ───────── -->
+<div id="portal-toast" style="display:none;position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);
+  background:#1e293b;color:white;padding:.75rem 1.5rem;border-radius:12px;font-size:.875rem;
+  font-weight:500;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.3);pointer-events:none;
+  white-space:nowrap">
+  🔗 Please update speeches in <strong>Base Camp</strong> — this dashboard auto-syncs nightly.
+</div>
+
 <!-- ───────── DETAIL MODAL ───────── -->
 <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
   <div class="modal-box" id="modal-box">
@@ -514,6 +535,15 @@ function switchTab(t){
   document.getElementById('tab-'+t+'-btn').classList.add('active');
 }
 
+let _toastTimer = null;
+function showPortalToast(){
+  const t = document.getElementById('portal-toast');
+  t.style.display = 'block';
+  t.style.opacity = '1';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.style.display='none',300); }, 3000);
+}
+
 // ── PATHWAY PAGE ─────────────────────────────────────────────────────────────
 // Members visible on the pathway page: paid/pending + Prathik Shetty as a guest
 function visibleMembers(includeUnpaid){
@@ -564,28 +594,40 @@ function renderGroups(members){
   members.forEach(m => {
     let key, label, sortNum;
     if(m.is_dtm){
-      key='dtm'; label='🏆 Distinguished Toastmaster'; sortNum=98;
-    } else if(m.not_enrolled || !m.pathway){
-      key='none'; label='⚠️ Not Yet Enrolled'; sortNum=99;
+      key='dtm'; label='🏆 Distinguished Toastmaster'; sortNum=1;
+    } else if(m.completed_levels >= 5 && m.path_completion?.done){
+      key='complete'; label='🎯 Pathway Complete'; sortNum=2;
     } else if(m.completed_levels >= 5){
-      key='complete'; label='🎉 Pathway Complete'; sortNum=6;
-    } else {
+      key='pathcomp'; label='🎯 Path Completion Pending'; sortNum=3;
+    } else if(!m.not_enrolled && m.pathway){
       const lvl = m.completed_levels + 1;
-      key='lvl'+lvl; label='Level '+lvl; sortNum=lvl;
+      // Higher level = lower sortNum = shown first
+      key='lvl'+lvl; label='Level '+lvl; sortNum=3+(5-lvl+1);
+    } else {
+      key='none'; label='⚠️ Not Yet Enrolled'; sortNum=99;
     }
     if(!groupMap[key]) groupMap[key]={label, sortNum, members:[]};
     groupMap[key].members.push(m);
   });
 
+  // Sort groups: highest expertise first (lowest sortNum first)
   const sorted = Object.values(groupMap).sort((a,b)=>a.sortNum-b.sortNum);
   grid.innerHTML = sorted.map(g => renderGroupHTML(g)).join('');
 }
 
 function renderGroupHTML(group){
-  const lvlNum = group.sortNum <= 5 ? group.sortNum : null;
-  const color = lvlNum ? (GROUP_COLORS[lvlNum]||'#6b7280') : '#6b7280';
+  // Determine level number from key (now encoded differently)
+  const lvlMatch = group.label.match(/Level (\d)/);
+  const lvlNum = lvlMatch ? parseInt(lvlMatch[1]) : null;
+  const color = lvlNum ? (GROUP_COLORS[lvlNum]||'#6b7280')
+    : (group.sortNum===1 ? '#92400e'   // DTM — gold
+    : group.sortNum<=3   ? '#d97706'   // Pathway complete / pending
+    : '#6b7280');
   const lvlEmojis = {1:'🌱',2:'🌿',3:'🌳',4:'🌲',5:'🏅'};
-  const emoji = lvlNum ? (lvlEmojis[lvlNum]||'⭐') : (group.sortNum===98 ? '🏆' : '❓');
+  const emoji = lvlNum ? (lvlEmojis[lvlNum]||'⭐')
+    : (group.sortNum===1 ? '🏆'
+    : group.sortNum<=3   ? '🎯'
+    : '⚠️');
 
   // Sort members by progress (most done = top = leaderboard)
   const getScore = m => {
@@ -706,6 +748,61 @@ let detailChart = null;
 const LVL_EMOJIS = ['🌱','🌿','🌳','🌲','🏅'];
 const LVL_TITLES_DEFAULT = ['Mastering Fundamentals','Learning Your Style','Increasing Knowledge','Building Skills','Demonstrating Expertise'];
 
+function buildTimelineHTML(m, pc){
+  // Collect all completed speeches from BCM seed + progression data
+  const seed = (window.PROJECT_COMPLETION_SEED || {})[m.name] || {};
+  const speeches = [];
+  if(m.levels){
+    m.levels.forEach(lvl => {
+      const bcmDone = lvl.bcm_done ?? 0;
+      lvl.projects.forEach((proj, idx) => {
+        if(proj.includes('Completion') && proj.includes('Level')) return; // skip cert step
+        const isDone = lvl.status === 'complete' || (lvl.status === 'current' && idx < bcmDone);
+        speeches.push({
+          proj,
+          level: lvl.level,
+          isDone,
+          date: null,  // will be populated once BCM detail API data is fetched
+          speechTitle: null,
+        });
+      });
+    });
+  }
+  const doneSpeechesSorted = speeches.filter(s=>s.isDone);
+  const pendingSpeeches    = speeches.filter(s=>!s.isDone).slice(0,3); // show next 3 pending
+
+  if(!doneSpeechesSorted.length && !pendingSpeeches.length) return '';
+
+  const rows = [
+    ...doneSpeechesSorted.map((s,i) => {
+      const num = i+1;
+      return `<div class="stl-item">
+        <div class="stl-dot done">${num}</div>
+        <div class="stl-info">
+          <div class="stl-proj">L${s.level}: ${s.proj}</div>
+          ${s.speechTitle ? `<div class="stl-speech">💬 "${s.speechTitle}"</div>` : ''}
+          ${s.date ? `<div class="stl-date">📅 ${s.date}</div>` : '<div class="stl-date" style="color:#cbd5e1">📅 Date not yet synced</div>'}
+        </div>
+      </div>`;
+    }),
+    ...pendingSpeeches.map(s => `<div class="stl-item">
+      <div class="stl-dot pending">⬜</div>
+      <div class="stl-info">
+        <div class="stl-proj" style="color:var(--muted)">L${s.level}: ${s.proj}</div>
+        <div class="stl-date" style="color:#cbd5e1">Not started yet</div>
+      </div>
+    </div>`)
+  ].join('');
+
+  return `<div class="speech-timeline-section">
+    <div class="section-title" style="margin-bottom:1rem">🗓️ Speech Timeline</div>
+    <div style="font-size:.73rem;color:var(--muted);margin-bottom:1rem">
+      Completed ${doneSpeechesSorted.length} speech${doneSpeechesSorted.length!==1?'es':''} · Speech dates sync nightly from Base Camp
+    </div>
+    ${rows}
+  </div>`;
+}
+
 function openModal(idx){
   const m = D.members[idx];
   const pc = m.pathway_color || '#6b7280';
@@ -713,8 +810,16 @@ function openModal(idx){
   const scroll = document.getElementById('modal-scroll');
 
   const done = Math.min(m.completed_levels, 5);
-  const pct = m.is_dtm ? 100 : Math.round((done/5)*100);
   const currentLvl = m.is_dtm ? 5 : Math.min(m.completed_levels+1,5);
+
+  // Current level progress % from BCM
+  const curLvlData = m.levels?.find(l=>l.status==='current');
+  const lvlBcmDone  = curLvlData?.bcm_done  ?? null;
+  const lvlBcmTotal = curLvlData?.bcm_total ?? null;
+  const lvlPct = m.is_dtm ? 100
+    : (m.completed_levels >= 5 && m.path_completion?.done) ? 100
+    : (lvlBcmDone !== null && lvlBcmTotal > 0) ? Math.round((lvlBcmDone / lvlBcmTotal) * 100)
+    : 0;
 
   const roleHTML = m.excom_role ? `<div class="modal-role-badge">⭐ ${m.excom_role}</div>` : '';
   const mentorHTML = m.mentor ? `<div class="modal-mentor-line">👤 Mentor: <strong>${m.mentor}</strong></div>` : '';
@@ -777,7 +882,7 @@ function openModal(idx){
         // For current level: mark done if index < bcm_done count; for complete levels: all done
         const isDone = isLvlDone || (status === 'current' && bcmDone !== null ? idx < bcmDone : false);
         const icon = isDone ? '✅' : (isElective ? '🔵' : '⬜');
-        return `<div class="project-row ${isDone?'proj-done':''}">
+        return `<div class="project-row ${isDone?'proj-done':''}" onclick="showPortalToast()" style="cursor:pointer" title="Update speeches in Base Camp">
           <span class="proj-icon">${icon}</span>
           <span class="proj-name ${isDone?'checked-name':''} ${isElective?'elective-proj':''}">${p}</span>
         </div>`;
@@ -873,14 +978,16 @@ function openModal(idx){
         <div class="ms-lbl">Currently On</div>
       </div>
       <div class="modal-stat">
-        <div class="ms-val" style="color:${pc}">${pct}%</div>
-        <div class="ms-lbl">Pathway Done</div>
+        <div class="ms-val" style="color:${pc}">${lvlPct}%</div>
+        <div class="ms-lbl">Level ${m.is_dtm || (m.completed_levels>=5 && m.path_completion?.done) ? '' : currentLvl+' '}Done</div>
       </div>
     </div>
     <div class="ml-bar-section" style="--pc:${pc}">
       <div class="section-title" style="margin-bottom:1.25rem">Level Journey 🗺️</div>
       ${levelsHTML}
-    </div>`;
+    </div>
+    ${buildTimelineHTML(m, pc)}
+  `;
 
   document.getElementById('modal-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';

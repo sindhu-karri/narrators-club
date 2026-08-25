@@ -217,6 +217,7 @@ select{padding:.6rem 1rem;border:1px solid var(--border);border-radius:10px;font
 .proj-name{font-size:.83rem;color:var(--text);flex:1;user-select:none;}
 .proj-name.checked-name{text-decoration:line-through;color:#94a3b8;}
 .proj-name.elective-proj{font-style:italic;color:#64748b;}
+.proj-speech-title{font-size:.75rem;color:#94a3b8;font-style:italic;margin-left:.3rem;}
 .elective-note{font-size:.75rem;color:var(--muted);font-style:italic;margin-top:.5rem;padding:.5rem .75rem;background:#f8fafc;border-radius:8px;border-left:3px solid var(--amber);}
 .next-step-box{margin:1rem 0 0;padding:.75rem 1rem;background:color-mix(in srgb,var(--pc) 8%,white);border-radius:10px;border-left:4px solid var(--pc);}
 .next-step-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--pc);margin-bottom:.4rem;}
@@ -351,6 +352,9 @@ tr:hover td{background:#fafafa;}
       </button>
       <button class="tab-btn" onclick="switchTab('excom')" id="tab-excom-btn">
         ⭐ ExCom
+      </button>
+      <button class="tab-btn" onclick="switchTab('mentors')" id="tab-mentors-btn">
+        🤝 Mentors
       </button>
       <button class="tab-btn" onclick="switchTab('membership')" id="tab-membership-btn">
         🔒 Membership
@@ -594,11 +598,11 @@ function renderGroups(members){
   members.forEach(m => {
     let key, label, sortNum;
     if(m.is_dtm){
-      key='dtm'; label='🏆 Distinguished Toastmaster'; sortNum=1;
+      key='dtm'; label='👑 Distinguished Toastmaster'; sortNum=1;
     } else if(m.completed_levels >= 5 && m.path_completion?.done){
-      key='complete'; label='🎯 Pathway Complete'; sortNum=2;
+      key='complete'; label='🏆 Pathway Complete'; sortNum=2;
     } else if(m.completed_levels >= 5){
-      key='pathcomp'; label='🎯 Path Completion Pending'; sortNum=3;
+      key='pathcomp'; label='🎓 Path Completion'; sortNum=3;
     } else if(!m.not_enrolled && m.pathway){
       const lvl = m.completed_levels + 1;
       // Higher level = lower sortNum = shown first
@@ -623,10 +627,11 @@ function renderGroupHTML(group){
     : (group.sortNum===1 ? '#92400e'   // DTM — gold
     : group.sortNum<=3   ? '#d97706'   // Pathway complete / pending
     : '#6b7280');
-  const lvlEmojis = {1:'🌱',2:'🌿',3:'🌳',4:'🌲',5:'🏅'};
+  const lvlEmojis = {1:'🌱',2:'🌿',3:'🌳',4:'🌲',5:'🎯'};
   const emoji = lvlNum ? (lvlEmojis[lvlNum]||'⭐')
-    : (group.sortNum===1 ? '🏆'
-    : group.sortNum<=3   ? '🎯'
+    : (group.sortNum===1 ? '👑'
+    : group.sortNum===2  ? '🏆'
+    : group.sortNum===3  ? '🎓'
     : '⚠️');
 
   // Sort members by progress (most done = top = leaderboard)
@@ -679,8 +684,8 @@ function memberRowHTML(m, origIdx, rank){
   } else if(!m.not_enrolled && m.levels){
     const curLvl = m.levels.find(l=>l.status==='current');
     if(curLvl){
-      // Denominator = speech projects only (exclude "Level X Completion" cert step)
-      const speechProjs = curLvl.projects.filter(p => !p.startsWith('Level ') || !p.includes('Completion'));
+      // Denominator = speech projects only (exclude Level Completion admin step)
+      const speechProjs = curLvl.projects.filter(p => !p.is_admin_step);
       total = speechProjs.length;
       const bcmTotal = curLvl.bcm_total ?? null;
       // Use BCM total (includes Level Completion step) as denominator when available
@@ -689,7 +694,7 @@ function memberRowHTML(m, origIdx, rank){
       if(curLvl.bcm_done != null && curLvl.bcm_done >= 0){
         done = Math.min(curLvl.bcm_done, displayDenom);
       } else {
-        const firstUndone = speechProjs.findIndex(p=>!isProjectDone(m.name,p));
+        const firstUndone = speechProjs.findIndex(p=>!p.done);
         done = firstUndone === -1 ? total : firstUndone;
       }
       total = displayDenom;
@@ -745,31 +750,27 @@ function filterCards(){
 // ── DETAIL MODAL ─────────────────────────────────────────────────────────────
 let detailChart = null;
 
-const LVL_EMOJIS = ['🌱','🌿','🌳','🌲','🏅'];
+const LVL_EMOJIS = ['🌱','🌿','🌳','🌲','🎯'];
 const LVL_TITLES_DEFAULT = ['Mastering Fundamentals','Learning Your Style','Increasing Knowledge','Building Skills','Demonstrating Expertise'];
 
 function buildTimelineHTML(m, pc){
-  // Collect all completed speeches from BCM seed + progression data
-  const seed = (window.PROJECT_COMPLETION_SEED || {})[m.name] || {};
   const speeches = [];
   if(m.levels){
     m.levels.forEach(lvl => {
-      const bcmDone = lvl.bcm_done ?? 0;
-      lvl.projects.forEach((proj, idx) => {
-        if(proj.includes('Completion') && proj.includes('Level')) return; // skip cert step
-        const isDone = lvl.status === 'complete' || (lvl.status === 'current' && idx < bcmDone);
+      lvl.projects.forEach(proj => {
+        if(proj.is_admin_step) return; // skip Level Completion cert step
         speeches.push({
-          proj,
+          proj: proj.project,
           level: lvl.level,
-          isDone,
-          date: null,  // will be populated once BCM detail API data is fetched
-          speechTitle: null,
+          isDone: proj.done,
+          date: proj.completion_date || null,
+          speechTitle: proj.speech_title || null,
         });
       });
     });
   }
   const doneSpeechesSorted = speeches.filter(s=>s.isDone);
-  const pendingSpeeches    = speeches.filter(s=>!s.isDone).slice(0,3); // show next 3 pending
+  const pendingSpeeches    = speeches.filter(s=>!s.isDone).slice(0,3);
 
   if(!doneSpeechesSorted.length && !pendingSpeeches.length) return '';
 
@@ -823,7 +824,7 @@ function openModal(idx){
 
   const roleHTML = m.excom_role ? `<div class="modal-role-badge">⭐ ${m.excom_role}</div>` : '';
   const mentorHTML = m.mentor ? `<div class="modal-mentor-line">👤 Mentor: <strong>${m.mentor}</strong></div>` : '';
-  const pathwayLabel = m.is_dtm ? 'Distinguished Toastmaster 🏆' : (m.pathway || 'Not Enrolled');
+  const pathwayLabel = m.is_dtm ? 'Distinguished Toastmaster 👑' : (m.pathway || 'Not Enrolled');
 
   const lvlTitles = (m.pathway && window.PATHWAY_STRUCTURES?.[m.pathway])
     ? Object.values(window.PATHWAY_STRUCTURES[m.pathway]).map(l=>l.title)
@@ -836,15 +837,15 @@ function openModal(idx){
       ⚠️ Not yet enrolled in a Pathway.<br>Ask VP Education for help enrolling on Base Camp.</div>`;
   } else if(m.is_dtm){
     levelsHTML = `<div style="padding:2rem;text-align:center;font-size:1.3rem;font-weight:800;color:#92400e">
-      🏆 Distinguished Toastmaster — All Levels Complete!</div>`;
+      👑 Distinguished Toastmaster — All Levels Complete!</div>`;
   } else {
     levelsHTML = Array.from({length:5}, (_, i) => {
       const n = i+1;
       const lvl = m.levels?.find(l=>l.level===n);
       const status = lvl?.status || (n <= done ? 'complete' : 'future');
       const allProjs = lvl?.projects || [];
-      // Speech count = exclude "Level X Completion" cert step (not a speech)
-      const speechCount = allProjs.filter(p => !p.startsWith('Level ') || !p.includes('Completion')).length || (allProjs.length || 3);
+      // Speech count = exclude admin Level Completion step
+      const speechCount = allProjs.filter(p => !p.is_admin_step).length || (allProjs.length || 3);
       const total = allProjs.length || 3;
       const emoji = LVL_EMOJIS[i];
       const title = lvlTitles[i] || `Level ${n}`;
@@ -863,7 +864,7 @@ function openModal(idx){
           doneCount = Math.min(bcmDone, displayTotal);
           barPct = displayTotal > 0 ? Math.round((doneCount / displayTotal) * 100) : 0;
         } else {
-          const fu = allProjs.findIndex(p=>!isProjectDone(m.name,p));
+          const fu = allProjs.findIndex(p=>!p.done);
           doneCount = fu === -1 ? speechCount : Math.min(fu, speechCount);
           barPct = displayTotal > 0 ? Math.round((doneCount/displayTotal)*100) : 0;
         }
@@ -875,30 +876,30 @@ function openModal(idx){
       }
       const barColorStyle = fillClass ? '' : `background:linear-gradient(90deg,${pc},color-mix(in srgb,${pc} 65%,white))`;
 
-      // Project rows — use BCM position to determine done (ignore localStorage)
-      const projectsHTML = lvl ? lvl.projects.map((p, idx) => {
-        const isElective = p.includes('Elective');
-        const isLvlDone = status === 'complete';
-        // For current level: mark done if index < bcm_done count; for complete levels: all done
-        const isDone = isLvlDone || (status === 'current' && bcmDone !== null ? idx < bcmDone : false);
+      // Project rows — projects are now objects {project, done, speech_title, completion_date}
+      const projectsHTML = lvl ? lvl.projects.map((p) => {
+        const isElective = p.project.includes('Elective');
+        const isAdminStep = !!p.is_admin_step;
+        const isDone = p.done;
         const icon = isDone ? '✅' : (isElective ? '🔵' : '⬜');
-        return `<div class="project-row ${isDone?'proj-done':''}" onclick="showPortalToast()" style="cursor:pointer" title="Update speeches in Base Camp">
+        const speechMeta = p.speech_title
+          ? `<span class="proj-speech-title"> — "${p.speech_title}"</span>` : '';
+        return `<div class="project-row ${isDone?'proj-done':''} ${isAdminStep?'proj-admin-step':''}" onclick="showPortalToast()" style="cursor:pointer" title="Update speeches in Base Camp">
           <span class="proj-icon">${icon}</span>
-          <span class="proj-name ${isDone?'checked-name':''} ${isElective?'elective-proj':''}">${p}</span>
+          <span class="proj-name ${isDone?'checked-name':''} ${isElective?'elective-proj':''}">${p.project}</span>${speechMeta}
         </div>`;
       }).join('') : `<p style="padding:.5rem;color:var(--muted);font-size:.8rem">No project data.</p>`;
 
-      const elNote = status !== 'complete' && lvl?.projects.some(p=>p.includes('Elective'))
+      const elNote = status !== 'complete' && lvl?.projects.some(p=>p.project.includes('Elective'))
         ? `<div class="elective-note">💡 Elective options: Connect with Storytelling, Using Presentation Software, Inspire Your Audience, Persuasive Speaking, Focus on the Positive, and more.</div>` : '';
 
       const nextBox = status === 'current' && lvl
         ? (() => {
-            // Next speech = first undone non-completion project based on BCM position
-            const speechList = lvl.projects.filter(p=>!p.includes('Completion')&&!p.includes('Elective'));
-            const next = bcmDone !== null ? speechList[bcmDone] || null : speechList[0] || null;
+            const speechList = lvl.projects.filter(p=>!p.is_admin_step&&!p.project.includes('Elective'));
+            const next = speechList.find(p=>!p.done);
             return next ? `<div class="next-step-box" style="--pc:${pc}">
               <div class="next-step-label">🎯 Next Step</div>
-              <div class="next-step-text">${next}</div>
+              <div class="next-step-text">${next.project}</div>
             </div>` : `<div class="next-step-box" style="--pc:#16a34a">
               <div class="next-step-label">🎉 Almost there!</div>
               <div class="next-step-text">Submit Level Completion in Base Camp!</div>

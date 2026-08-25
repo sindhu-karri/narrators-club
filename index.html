@@ -617,13 +617,12 @@ function renderMentorsPage(){
   if(_mentorViewRendered) return;
   _mentorViewRendered = true;
   const members = (window.CLUB_DATA||{}).members||[];
-  // Build mentor→mentees map
+
+  // Build mentor→mentees map — include ALL members
   const mentorMap = {};
   const unassigned = [];
   members.forEach(m=>{
     const mentor = m.mentor||null;
-    const isPaid = m.membership_status==='Paid' || m.is_excom;
-    if(!isPaid) return; // only show paid members
     if(mentor){
       (mentorMap[mentor]||(mentorMap[mentor]=[])).push(m);
     } else {
@@ -631,35 +630,39 @@ function renderMentorsPage(){
     }
   });
 
-  // Render cards view
+  // Helper: consistent per-member color
+  function memberColor(name){
+    let h=0; for(let c of name) h=(h*31+c.charCodeAt(0))&0xffffffff;
+    return MENTOR_COLORS[Math.abs(h)%MENTOR_COLORS.length];
+  }
+  function initials(name){ return name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+  // ── Cards view ──────────────────────────────────────────────────────────────
   const cardsEl = document.getElementById('mt-view-cards');
   let cardsHTML = '';
-  let ci = 0;
+
+  // Mentor cards
   Object.entries(mentorMap).forEach(([mentorName, mentees])=>{
     const mentorMember = members.find(m=>m.name===mentorName);
-    const color = MENTOR_COLORS[ci++ % MENTOR_COLORS.length];
-    const initials = mentorName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const color = memberColor(mentorName);
     const mentorLvl = mentorMember ? getMentorLvlLabel(mentorMember) : '';
     const externalBadge = !mentorMember ? `<span class="mt-external-badge">External</span>` : '';
-    let menteesHTML = '';
-    mentees.forEach(mtee=>{
+    const menteesHTML = mentees.map(mtee=>{
       const {pct, label} = getMenteeProgress(mtee);
-      const mi = mtee.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-      const mc = MENTOR_COLORS[(members.indexOf(mtee)) % MENTOR_COLORS.length];
-      const pathShort = (mtee.path||'').replace(/ Mastery| Influence| Leadership/,'').split(' ').slice(0,3).join(' ');
-      menteesHTML += `<div class="mt-mentee-card" onclick="openModal('${mtee.name.replace(/'/,"\\\'")}')">
-        <div class="mt-mentee-avatar" style="background:${mc}">${mi}</div>
+      const pathShort = (mtee.pathway||mtee.path||'').replace(/ Mastery| Influence| Leadership/g,'').split(' ').slice(0,3).join(' ');
+      return `<div class="mt-mentee-card" onclick="openModal('${mtee.name.replace(/'/g,"\\'")}')">
+        <div class="mt-mentee-avatar" style="background:${memberColor(mtee.name)}">${initials(mtee.name)}</div>
         <div style="flex:1;min-width:0">
           <div class="mt-mentee-name">${mtee.name}</div>
-          <div class="mt-mentee-path">${pathShort||'No path yet'}</div>
+          <div class="mt-mentee-path">${pathShort||'Not enrolled'}</div>
           <div class="mt-progress-bar"><div class="mt-progress-fill" style="width:${pct}%;background:${color}"></div></div>
           <div class="mt-progress-label">${label}</div>
         </div>
       </div>`;
-    });
+    }).join('');
     cardsHTML += `<div class="mt-mentor-card">
       <div class="mt-mentor-header">
-        <div class="mt-mentor-avatar" style="background:${color}">${initials}</div>
+        <div class="mt-mentor-avatar" style="background:${color}">${initials(mentorName)}</div>
         <div>
           <div class="mt-mentor-name">${mentorName} ${externalBadge}</div>
           <div class="mt-mentor-lvl">${mentorLvl}</div>
@@ -669,36 +672,49 @@ function renderMentorsPage(){
       <div class="mt-mentees-grid">${menteesHTML}</div>
     </div>`;
   });
-  // Unassigned section
+
+  // Unassigned section — show all members without a mentor
   if(unassigned.length){
+    const chips = unassigned.map(m=>{
+      const {pct,label} = getMenteeProgress(m);
+      const pathShort = (m.pathway||m.path||'').replace(/ Mastery| Influence| Leadership/g,'').split(' ').slice(0,3).join(' ');
+      return `<div class="mt-mentee-card" onclick="openModal('${m.name.replace(/'/g,"\\'")}')">
+        <div class="mt-mentee-avatar" style="background:${memberColor(m.name)}">${initials(m.name)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="mt-mentee-name">${m.name}</div>
+          <div class="mt-mentee-path">${pathShort||'Not enrolled'}</div>
+          <div class="mt-progress-bar"><div class="mt-progress-fill" style="width:${pct}%;background:#9ca3af"></div></div>
+          <div class="mt-progress-label">${label}</div>
+        </div>
+      </div>`;
+    }).join('');
     cardsHTML += `<div class="mt-unassigned-section">
-      <div class="mt-section-title">⚠️ Not yet assigned a mentor (${unassigned.length})</div>
-      <div>${unassigned.map(m=>`<span class="mt-unassigned-tag">${m.name}</span>`).join('')}</div>
+      <div class="mt-section-title">⚠️ No mentor assigned (${unassigned.length})</div>
+      <div class="mt-mentees-grid">${chips}</div>
     </div>`;
   }
   cardsEl.innerHTML = cardsHTML;
 
-  // Render pairs table
+  // ── Pairs table — ALL members ────────────────────────────────────────────────
   const pairsEl = document.getElementById('mt-view-pairs');
-  let rows = '';
-  members.filter(m=>m.mentor).forEach((m,i)=>{
-    const color = MENTOR_COLORS[i % MENTOR_COLORS.length];
-    const mi = m.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const {pct,label} = getMenteeProgress(m);
-    const mentorMember = members.find(x=>x.name===m.mentor);
-    const mentorLvl = mentorMember ? getMentorLvlLabel(mentorMember) : '—';
-    const mmi = m.mentor.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const mc2 = MENTOR_COLORS[members.indexOf(mentorMember)%MENTOR_COLORS.length]||'#6b7280';
-    rows += `<tr onclick="openModal('${m.name.replace(/'/,"\\\'")}')">
-      <td><span class="mt-pair-avatar" style="background:${color}">${mi}</span>${m.name}</td>
-      <td>${(m.path||'').replace(/ Mastery| Influence| Leadership/,'').split(' ').slice(0,3).join(' ')||'—'}</td>
+  const rows = members.map(m=>{
+    const {label} = getMenteeProgress(m);
+    const pathShort = (m.pathway||m.path||'').replace(/ Mastery| Influence| Leadership/g,'').split(' ').slice(0,3).join(' ');
+    const mentorMember = m.mentor ? members.find(x=>x.name===m.mentor) : null;
+    const mentorLvl = m.mentor ? (mentorMember ? getMentorLvlLabel(mentorMember) : '—') : '';
+    const mentorCell = m.mentor
+      ? `<span class="mt-pair-avatar" style="background:${memberColor(m.mentor)}">${initials(m.mentor)}</span>${m.mentor}${!mentorMember?' <span class="mt-external-badge">External</span>':''}`
+      : `<span style="color:var(--muted);font-style:italic">Not assigned</span>`;
+    return `<tr onclick="openModal('${m.name.replace(/'/g,"\\'")}')">
+      <td><span class="mt-pair-avatar" style="background:${memberColor(m.name)}">${initials(m.name)}</span>${m.name}</td>
+      <td>${pathShort||'—'}</td>
       <td><span class="mt-lvl-badge">${label}</span></td>
-      <td><span class="mt-pair-avatar" style="background:${mc2}">${mmi}</span>${m.mentor}${!mentorMember?` <span class="mt-external-badge">External</span>`:''}</td>
+      <td>${mentorCell}</td>
       <td>${mentorLvl}</td>
     </tr>`;
-  });
+  }).join('');
   pairsEl.innerHTML = `<table class="mt-pairs-table"><thead><tr>
-    <th>Mentee</th><th>Pathway</th><th>Progress</th><th>Mentor</th><th>Mentor Level</th>
+    <th>Member</th><th>Pathway</th><th>Progress</th><th>Mentor</th><th>Mentor Level</th>
   </tr></thead><tbody>${rows}</tbody></table>`;
 }
 
@@ -706,12 +722,10 @@ function getMenteeProgress(m){
   const levels = m.levels||[];
   if(!levels.length) return {pct:0,label:'Not enrolled'};
   const totalProj = levels.reduce((s,l)=>{
-    const ps=(l.projects||[]).filter(p=>!p.is_admin_step&&!p.is_intro_block);
-    return s+ps.length;
+    return s+(l.projects||[]).filter(p=>!p.is_admin_step&&!p.is_intro_block).length;
   },0);
   const doneProj = levels.reduce((s,l)=>{
-    const ps=(l.projects||[]).filter(p=>!p.is_admin_step&&!p.is_intro_block&&p.done);
-    return s+ps.length;
+    return s+(l.projects||[]).filter(p=>!p.is_admin_step&&!p.is_intro_block&&p.done).length;
   },0);
   const pct = totalProj>0 ? Math.round(doneProj/totalProj*100) : 0;
   const curLvl = levels.find(l=>l.status==='current')||levels[0];
@@ -720,12 +734,12 @@ function getMenteeProgress(m){
 }
 
 function getMentorLvlLabel(m){
-  if(!m||!m.levels) return '';
+  if(!m||!m.levels) return m ? (m.pathway||m.path||'') : '';
   const cur = m.levels.find(l=>l.status==='current');
   const last = m.levels.filter(l=>l.status==='complete').pop();
   const ref = cur||last;
-  if(!ref) return m.path||'';
-  return `${m.path||'Unknown Path'} · Level ${ref.level}`;
+  if(!ref) return m.pathway||m.path||'';
+  return `${m.pathway||m.path||'Unknown Path'} · Level ${ref.level}`;
 }
 
 let _toastTimer = null;

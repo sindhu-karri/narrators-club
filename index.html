@@ -624,8 +624,16 @@ function memberRowHTML(m, origIdx, rank){
   const initials = m.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
 
   let done = 0, total = 5, barPct = 0, barClass = '';
-  if(m.is_dtm || m.completed_levels >= 5){
+  if(m.is_dtm){
     done = 5; total = 5; barPct = 100; barClass = 'pb-done';
+  } else if(m.completed_levels >= 5){
+    const pc_data = m.path_completion || {};
+    if(pc_data.done){
+      done = 5; total = 5; barPct = 100; barClass = 'pb-done';
+    } else {
+      // All 5 levels done but Path Completion speech pending
+      done = 5; total = 5; barPct = 95; barClass = '';
+    }
   } else if(!m.not_enrolled && m.levels){
     const curLvl = m.levels.find(l=>l.status==='current');
     if(curLvl){
@@ -812,6 +820,37 @@ function openModal(idx){
         </div>
       </div>`;
     }).join('');
+
+    // Path Completion row (shown after all 5 levels when completed_levels >= 5)
+    if(m.completed_levels >= 5 && !m.is_dtm){
+      const pc_data = m.path_completion || {};
+      const pc_done = pc_data.completed || 0;
+      const pc_total = pc_data.total || 1;
+      const pc_finished = pc_data.done || false;
+      const pc_status = pc_finished ? 'complete' : 'current';
+      const pc_fillClass = pc_finished ? 'ml-done' : '';
+      const pc_barPct = pc_finished ? 100 : Math.round((pc_done/pc_total)*100);
+      const pc_color = pc_finished ? '#15803d' : pc;
+      const pc_pill = pc_finished
+        ? `<span class="ml-status-pill done">✅ Done</span>`
+        : `<span class="ml-status-pill current" style="background:#f59e0b22;color:#b45309;border-color:#f59e0b44">🎓 Final Speech</span>`;
+      levelsHTML += `<div class="ml-level-row ml-${pc_status}">
+        <div class="ml-level-header">
+          <div class="ml-level-emoji">🎓</div>
+          <div class="ml-level-info">
+            <div class="ml-level-title">Path Completion Speech</div>
+            <div class="ml-level-sub">1 speech — completes the pathway</div>
+          </div>
+          <div class="ml-bar-area">
+            <div class="ml-bar-wrap">
+              <div class="ml-bar-fill ${pc_fillClass}" style="width:${pc_barPct}%;${pc_fillClass?'':'background:linear-gradient(90deg,'+pc+','+pcd+')'}" ></div>
+            </div>
+          </div>
+          <div class="ml-count" style="color:${pc_color}">${pc_done}<span style="font-weight:400;color:var(--muted)">/${pc_total}</span></div>
+          ${pc_pill}
+        </div>
+      </div>`;
+    }
   }
 
   scroll.innerHTML = `

@@ -237,9 +237,14 @@ for m in sorted(all_members, key=lambda x: x.get("name", "")):
             pathway, completed = ACTIVE_COURSE_OVERRIDES[name]
         else:
             pathway, completed = decode_level_code(level_code)
-            if pathway is None and m.get("pathways_status") == "Pathways Enrolled":
-                pathway = "Enrolled (pathway TBD)"
-                completed = 0
+            if pathway is None:
+                bc_path = _bc_pathways.get(name)
+                if bc_path and bc_path in PATHWAY_PROJECTS:
+                    pathway = bc_path
+                    completed = 0
+                elif m.get("pathways_status") == "Pathways Enrolled":
+                    pathway = "Enrolled (pathway TBD)"
+                    completed = 0
 
     # Pay status normalisation
     if pay_status == "Paid Until":
